@@ -8,8 +8,8 @@ info:
     Gestión de solicitudes de contacto (Match).
   version: "1.0.0"
   contact:
-    name: Equipo Cracks Colombia
-    email: soporte@crackscolombia.co
+    name: Santiago Andrés Navarro Ortiz
+    email: sano2003@hotmail.es
 
 servers:
   - url: https://api.crackscolombia.co/v1
