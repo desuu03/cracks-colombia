@@ -58,7 +58,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "422":
-          description: Datos inválidos o consentimiento de acudiente faltante (menores de edad)
+          description: >
+            Datos inválidos; birthDate faltante o inválido para un deportista; aceptación
+            de la política de tratamiento de datos faltante; o consentimiento de
+            acudiente faltante cuando el servidor lo determina menor de edad.
           content:
             application/json:
               schema:
@@ -462,23 +465,33 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password, role, fullName]
+      required: [email, password, role, fullName, dataProcessingConsent]
       properties:
         email: { type: string, format: email }
         password: { type: string, format: password, minLength: 8 }
         fullName: { type: string }
         role:
-          $ref: "#/components/schemas/Role"
-        isMinor:
-          type: boolean
-          description: Indica si el deportista es menor de edad
+          type: string
+          enum: [DEPORTISTA, OJEADOR_ENTRENADOR]
+          description: El registro público solo permite los roles de deportista y ojeador/entrenador.
+        birthDate:
+          type: string
+          format: date
+          description: >
+            Obligatorio cuando role = DEPORTISTA. El servidor deriva de esta fecha
+            la mayoría de edad; el cliente no puede declararla.
         guardianConsent:
           type: object
-          description: Requerido cuando isMinor = true
+          description: >
+            Requerido cuando el servidor determina, a partir de birthDate, que el
+            deportista es menor de edad. accepted debe ser true. Ignorado en caso contrario.
           properties:
             guardianFullName: { type: string }
             guardianEmail: { type: string, format: email }
             accepted: { type: boolean }
+        dataProcessingConsent:
+          type: boolean
+          description: Debe ser true para aceptar la política de tratamiento de datos; aplica a todo registro.
 
     LoginRequest:
       type: object
@@ -489,8 +502,11 @@ components:
 
     AuthResponse:
       type: object
+      required: [accessToken, tokenType, user]
       properties:
-        accessToken: { type: string }
+        accessToken:
+          type: string
+          description: JWT firmado por el servidor con el identificador y rol del usuario.
         tokenType: { type: string, example: Bearer }
         user:
           $ref: "#/components/schemas/UserProfile"
@@ -507,7 +523,7 @@ components:
         sport: { type: string }
         position: { type: string }
         region: { type: string }
-        age: { type: integer }
+        birthDate: { type: string, format: date }
         heightCm: { type: number }
         weightKg: { type: number }
         trajectory: { type: string }
@@ -522,7 +538,7 @@ components:
         sport: { type: string }
         position: { type: string }
         region: { type: string }
-        age: { type: integer }
+        birthDate: { type: string, format: date }
         heightCm: { type: number }
         weightKg: { type: number }
         trajectory: { type: string }

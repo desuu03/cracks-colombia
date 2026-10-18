@@ -1,0 +1,85 @@
+1. INTRODUCCIÓN
+En la actualidad existe una fuerte barrera de entrada al deporte profesional y universitario
+para los jóvenes talentos en las diversas regiones colombianas debido a las limitaciones
+logísticas y presupuestales de la manera de reclutamiento tradicional, lo que resulta en
+una gran pérdida de talentos por falta de visibilidad y conexión directa con los clubes. En
+este orden de ideas, lo que se busca con este proyecto es facilitar la exhibición del
+talento deportivo juvenil, consolidando un espacio donde los entrenadores puedan
+buscar talentos a nivel nacional sin salir de su oficina.
+
+1.1 Alcance
+En esta sección se describe el alcance del proyecto.
+1.1.1 Alcance funcional
+El proyecto contempla las siguientes funcionalidades:
+● Registrar usuarios con asignación de roles específicos (Deportista o Entrenador).
+● Crear perfil del deportista con datos físicos, disciplina, posición y trayectoria.
+● Cargar contenido multimedia (galería de videos cortos mostrando jugadas o
+habilidades).
+● Filtrar y buscar talentos por parte de los entrenadores (por deporte, posición,
+edad, región, etc.).
+● Solicitar contacto o agendar entrevistas/pruebas (Match) entre el club y el jugador.
+● Enviar notificaciones automáticas al deportista cuando un club revisa su perfil o
+muestra interés
+● Generar reportes básicos de las estadísticas cargadas por los jugadores
+Funcionalidades no contempladas:
+● Recomendaciones automáticas de perfiles
+1.1.2 Alcance poblacional
+Jóvenes deportistas de bajos y medianos recursos y clubes/entrenadores que se pierden
+de excelentes prospectos.
+1.1.3 Alcance geográfico
+La implementación inicial es a nivel nacional beneficiando a clubes de barrio, academias
+locales y ligas departamentales de Colombia.
+
+3.1 Descripción de los actores de negocio
+En esta sección se describen los actores de negocio identificados:
+3.1.1 Deportista
+Joven deportista (adolescente o prospecto) que busca visibilidad para acceder a
+oportunidades profesionales o universitarias. Se registra en la plataforma, crea su perfil
+deportivo y carga videos de sus habilidades.
+Interés en el negocio: Interés en el negocio: ser descubierto por clubes u ojeadores sin
+depender de torneos presenciales en ciudades principales.
+3.1.2 Acudiente o representante legal
+Adulto responsable de un deportista menor de edad. No necesariamente usa la
+plataforma de forma activa, pero autoriza el registro del menor y el tratamiento de sus
+datos personales.
+Interés en el negocio: garantizar que la participación del menor sea segura y que sus
+datos estén protegidos.
+
+3.1.3 Ojeador/entrenador
+Persona encargada de observar y evaluar deportistas para detectar talento. Busca, filtra y
+revisa perfiles, y envía solicitudes de contacto.
+Interés en el negocio: encontrar prospectos a nivel nacional sin viajar, reduciendo
+tiempo y costos de scouting.
+3.1.4 Club deportivo/academia
+Organización (club profesional, academia o universidad) a la que pertenece o representa
+el ojeador/entrenador. Es quien finalmente se beneficia del reclutamiento y, en la práctica,
+respalda las solicitudes de contacto.
+Interés en el negocio: ampliar su base de prospectos y acceder a talento regional de
+forma económica.
+
+4. PROCESOS DE NEGOCIO
+4.1 Gestión de perfiles
+En qué consiste: El usuario se registra como deportista o entrenador y crea o edita su
+perfil deportivo: el deportista carga datos físicos, disciplina, posición, trayectoria y videos;
+el ojeador/entrenador registra su nombre, club/institución y datos de contacto.
+Relación con los otros procesos: Los perfiles de deportistas son la entrada que necesita
+el proceso de Búsqueda y evaluación de talento, y los perfiles de ojeadores son los que
+ejecutan ese segundo proceso.
+4.2 Búsqueda y evaluación de talento
+En qué consiste: el entrenador filtra y consulta los perfiles disponibles por deporte,
+posición, edad y región, revisa los videos y estadísticas, y decide si un deportista es un
+prospecto de interés.
+Relación con los otros procesos: toma como entrada los perfiles generados en el proceso
+anterior. Su salida es la decisión de interés sobre un deportista específico, que se
+convierte en la entrada del proceso de Gestión de solicitudes de contacto: sin una
+evaluación previa no existe motivo para iniciar una solicitud.
+
+4.3 Gestión de solicitudes de contacto (Match)
+En qué consiste: cuando un entrenador muestra interés en un deportista, el sistema
+gestiona la solicitud de contacto o prueba: la crea, la notifica al deportista, registra la
+respuesta (aceptada o rechazada) y, si se acepta, habilita el intercambio de datos de
+contacto entre ambas partes.
+Relación con los otros procesos: recibe como entrada la decisión de interés del proceso
+de Búsqueda y evaluación. A su vez, genera una salida que retroalimenta al proceso 1:
+una notificación que el deportista ve directamente en su perfil, cerrando el ciclo entre los
+tres procesos.
