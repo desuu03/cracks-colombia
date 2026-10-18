@@ -1,6 +1,8 @@
 # cracks-colombia
 Proyecto académico para Software III. Plataforma de emparejamiento de entrenadores y prospectos y talentos jóvenes colombianos.
 
+El backend (Spring Boot) vive en la raíz del repositorio y el frontend (Vue 3 + Vite) en [`front/`](front/README.md).
+
 ## HU-01: registro e inicio de sesión
 
 El backend expone `POST /auth/register` y `POST /auth/login`. El registro público solo permite `DEPORTISTA` y `OJEADOR_ENTRENADOR`. Las contraseñas se almacenan con PBKDF2 y el login devuelve un token JWT con el rol del usuario.
