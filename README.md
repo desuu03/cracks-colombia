@@ -19,3 +19,23 @@ La búsqueda, el marcado de interés y la creación de solicitudes requieren `OJ
 - `JWT_EXPIRATION_MS` (por defecto `3600000`, una hora)
 
 Las pruebas usan una base H2 aislada y un secreto de prueba; no requieren PostgreSQL ni `JWT_SECRET_BASE64`.
+
+## HU-03: videos de habilidades
+
+`POST /athletes/{athleteId}/videos` recibe el archivo en `multipart/form-data` bajo el campo `file`. El backend solo acepta MP4 con video H.264, verifica la estructura del contenedor, las muestras de video, la duracion real (maximo 60 segundos) y el tamano (maximo 50 MB). Los videos quedan guardados en el filesystem del servidor con un nombre aleatorio, nunca con el nombre enviado por el usuario. Antes de aceptar un video, valida que exista el consentimiento de tratamiento de datos y, si el deportista es menor, la autorizacion registrada de su acudiente.
+
+`GET /users/me/videos` devuelve la galeria completa del deportista autenticado, incluidos los estados de moderacion. `GET /athletes/{athleteId}/videos` devuelve solo videos aprobados. La propiedad `url` de cada video apunta a `GET /videos/{videoId}/content`, que transmite el MP4 y permite al navegador reproducirlo; los videos pendientes o rechazados solo son visibles para el propietario y moderadores. El deportista puede eliminar sus archivos con `DELETE /videos/{videoId}`.
+
+### Configuracion de videos
+
+- `VIDEO_STORAGE_DIR` (por defecto `./data/videos`; fuera del classpath y excluido de Git)
+- `VIDEO_MAX_FILE_SIZE` (por defecto `50MB`, limite HTTP de multipart)
+- `VIDEO_MAX_REQUEST_SIZE` (por defecto `51MB`, incluye el overhead multipart)
+- `VIDEO_MAX_FILE_SIZE_BYTES` (por defecto `50000000`)
+- `VIDEO_MAX_DURATION_SECONDS` (por defecto `60`)
+
+La carpeta de almacenamiento debe persistir entre reinicios y restringirse al usuario del proceso. Al desplegar en varias instancias, usa un volumen compartido o almacenamiento de objetos privado y adapta el servicio de almacenamiento para que todos los nodos lean los mismos archivos.
+
+### Migracion desde los enlaces de video
+
+Si una base PostgreSQL ya contiene la tabla `skill_videos` de la implementacion anterior, aplica una sola vez el script `src/main/resources/db/manual/rename-legacy-video-table.sql` antes de iniciar esta version. El script conserva la tabla anterior como archivo privado; esos enlaces no se publican ni se convierten en archivos automaticamente. Los deportistas deben volver a cargar los videos como MP4.

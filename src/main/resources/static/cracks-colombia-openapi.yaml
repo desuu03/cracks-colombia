@@ -145,10 +145,31 @@ paths:
         "404":
           description: Deportista no encontrado
 
+  /users/me/videos:
+    get:
+      tags: [Videos]
+      summary: Listar la galeria completa del deportista autenticado
+      description: Incluye videos pendientes, aprobados y rechazados para que el propietario pueda consultar su estado.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Videos propios, ordenados del mas reciente al mas antiguo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Video"
+        "401":
+          description: No autenticado
+        "403":
+          description: Solo los deportistas pueden consultar su galeria
+
   /athletes/{athleteId}/videos:
     get:
       tags: [Videos]
       summary: Listar los videos aprobados de un deportista
+      description: Devuelve unicamente videos aprobados y listos para reproduccion en perfiles publicos.
       parameters:
         - $ref: "#/components/parameters/AthleteId"
       responses:
@@ -162,7 +183,7 @@ paths:
                   $ref: "#/components/schemas/Video"
     post:
       tags: [Videos]
-      summary: Cargar un video de habilidades (propietario del perfil)
+      summary: Cargar un archivo MP4 de habilidades (propietario del perfil)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: "#/components/parameters/AthleteId"
@@ -172,15 +193,12 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required: [file]
               properties:
                 file:
                   type: string
                   format: binary
-                  description: Archivo de video (máx. ~50 MB, ~60 s) o URL embebida
-                videoUrl:
-                  type: string
-                  format: uri
-                  description: Alternativa a file; enlace embebido (p. ej. YouTube)
+                  description: Archivo MP4 con video H.264 de hasta 50 MB y 60 segundos.
       responses:
         "201":
           description: Video cargado y puesto en estado pendiente de moderación
@@ -189,13 +207,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/Video"
         "400":
-          description: Formato, tamaño o duración no válidos
+          description: Archivo vacio, formato MP4/H.264 invalido o duracion mayor a 60 segundos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: El archivo supera el limite de 50 MB
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "403":
           description: No es el propietario del perfil
+        "401":
+          description: No autenticado
 
   /videos/{videoId}:
     delete:
@@ -211,6 +237,32 @@ paths:
           description: No es el propietario del video
         "404":
           description: Video no encontrado
+
+  /videos/{videoId}/content:
+    get:
+      tags: [Videos]
+      summary: Reproducir el archivo de video
+      description: El publico solo puede reproducir videos aprobados; el propietario y los moderadores pueden acceder a los demas estados.
+      security: [{ bearerAuth: [] }, {}]
+      parameters:
+        - $ref: "#/components/parameters/VideoId"
+      responses:
+        "200":
+          description: Archivo MP4 para reproduccion en linea
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: Segmento del archivo para solicitudes HTTP Range
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Video no encontrado o aun no publicado
 
   /moderation/queue:
     get:
@@ -557,11 +609,16 @@ components:
 
     Video:
       type: object
+      required: [id, athleteId, url, sizeBytes, durationSeconds, status, uploadedAt]
       properties:
         id: { type: string, format: uuid }
         athleteId: { type: string, format: uuid }
-        url: { type: string, format: uri }
-        durationSeconds: { type: integer }
+        url:
+          type: string
+          format: uri-reference
+          description: Ruta de la API para reproducir el archivo MP4.
+        sizeBytes: { type: integer, format: int64, minimum: 1, maximum: 50000000 }
+        durationSeconds: { type: integer, minimum: 1, maximum: 60 }
         status:
           type: string
           enum: [PENDIENTE, APROBADO, RECHAZADO]

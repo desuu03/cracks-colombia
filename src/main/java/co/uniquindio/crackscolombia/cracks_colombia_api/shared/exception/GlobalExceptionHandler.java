@@ -2,6 +2,7 @@ package co.uniquindio.crackscolombia.cracks_colombia_api.shared.exception;
 
 import co.uniquindio.crackscolombia.cracks_colombia_api.shared.response.ApiErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -9,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Clock;
 
@@ -16,9 +18,12 @@ import java.time.Clock;
 public class GlobalExceptionHandler {
 
     private final Clock clock;
+    private final long maxVideoFileSizeBytes;
 
-    public GlobalExceptionHandler(Clock clock) {
+    public GlobalExceptionHandler(Clock clock,
+                                  @Value("${app.video.max-file-size-bytes:50000000}") long maxVideoFileSizeBytes) {
         this.clock = clock;
+        this.maxVideoFileSizeBytes = maxVideoFileSizeBytes;
     }
 
     @ExceptionHandler(ApiException.class)
@@ -40,6 +45,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<ApiErrorResponse> handleUnreadableRequest() {
         return error(HttpStatus.UNPROCESSABLE_ENTITY, "INVALID_REQUEST",
                 "El cuerpo de la solicitud no tiene un formato válido.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> handleUploadTooLarge() {
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "VIDEO_TOO_LARGE",
+                "El video supera el limite permitido de " + (maxVideoFileSizeBytes / 1_000_000) + " MB.");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
