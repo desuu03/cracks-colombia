@@ -80,7 +80,7 @@ sus pruebas en `UserProfileIntegrationTest` y `MatchRequestIntegrationTest`. Dec
 - El token JWT se guarda en `localStorage` y la sesión se cierra sola cuando expira (`exp`) o cuando
   la API responde 401.
 - Antes de subir un video, el navegador valida extensión/tipo, tamaño (50 000 000 bytes) y duración
-  (60 s). El backend sigue siendo quien valida el contenedor, el códec H.264 y la duración real.
+  (60 s). El backend sigue siendo quien valida el contenedor, la pista de video y la duración real.
 - Los videos aprobados se reproducen directamente desde `GET /videos/{id}/content`. Los pendientes o
   rechazados requieren el token, que un `<video src>` no puede enviar, así que se descargan con
   `fetch` y se reproducen desde una URL `blob:` cuando el deportista pide la vista previa.

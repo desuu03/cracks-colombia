@@ -60,8 +60,9 @@ async function upload() {
     <div>
       <h2>Subir un video</h2>
       <p class="hint">
-        MP4 con video H.264, máximo 50 MB y {{ MAX_VIDEO_SECONDS }} segundos. Cada video queda pendiente
-        hasta que un moderador lo apruebe.
+        MP4 de máximo 50 MB y {{ MAX_VIDEO_SECONDS }} segundos. Cada video queda pendiente hasta que un
+        moderador lo apruebe. Para que se vea en cualquier navegador, grábalo en H.264: en iPhone, Ajustes →
+        Cámara → Formatos → Más compatible.
       </p>
     </div>
 

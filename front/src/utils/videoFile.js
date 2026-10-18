@@ -29,12 +29,12 @@ function readDuration(file) {
 
 /**
  * Pre-checks what the browser can verify before uploading. The backend still
- * validates the container, the H.264 codec and the real duration.
+ * validates the container, the video track and the real duration.
  */
 export async function checkVideoFile(file) {
   const errors = []
   const looksLikeMp4 = file.type === 'video/mp4' || /\.mp4$/i.test(file.name)
-  if (!looksLikeMp4) errors.push('Solo se aceptan archivos MP4 (video H.264).')
+  if (!looksLikeMp4) errors.push('Solo se aceptan archivos MP4.')
   if (file.size === 0) errors.push('El archivo está vacío.')
   if (file.size > MAX_VIDEO_BYTES) {
     errors.push(`El archivo pesa ${formatBytes(file.size)}; el máximo es ${formatBytes(MAX_VIDEO_BYTES)}.`)
