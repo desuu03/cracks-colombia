@@ -29,9 +29,18 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_VIDEO", message);
     }
 
+    public static ApiException invalidPhoto(String message) {
+        return new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PHOTO", message);
+    }
+
     public static ApiException videoTooLarge(long maxFileSizeBytes) {
         return new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "VIDEO_TOO_LARGE",
                 "El video supera el limite permitido de " + (maxFileSizeBytes / 1_000_000) + " MB.");
+    }
+
+    public static ApiException photoTooLarge(long maxFileSizeBytes) {
+        return new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "PHOTO_TOO_LARGE",
+                "La foto supera el limite permitido de " + (maxFileSizeBytes / 1_000_000) + " MB.");
     }
 
     public static ApiException forbidden(String message) {

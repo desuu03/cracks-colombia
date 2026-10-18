@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -18,6 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "user_accounts", uniqueConstraints = {
         @UniqueConstraint(name = "uk_user_accounts_email", columnNames = "email")
+}, indexes = {
+        @Index(name = "idx_user_accounts_role_birth_date", columnList = "role, birth_date")
 })
 public class UserAccount {
 

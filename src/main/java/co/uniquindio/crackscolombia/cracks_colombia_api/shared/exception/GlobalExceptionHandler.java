@@ -1,6 +1,7 @@
 package co.uniquindio.crackscolombia.cracks_colombia_api.shared.exception;
 
 import co.uniquindio.crackscolombia.cracks_colombia_api.shared.response.ApiErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,14 @@ public class GlobalExceptionHandler {
 
     private final Clock clock;
     private final long maxVideoFileSizeBytes;
+    private final long maxPhotoFileSizeBytes;
 
     public GlobalExceptionHandler(Clock clock,
-                                  @Value("${app.video.max-file-size-bytes:50000000}") long maxVideoFileSizeBytes) {
+                                  @Value("${app.video.max-file-size-bytes:50000000}") long maxVideoFileSizeBytes,
+                                  @Value("${app.photo.max-file-size-bytes:5000000}") long maxPhotoFileSizeBytes) {
         this.clock = clock;
         this.maxVideoFileSizeBytes = maxVideoFileSizeBytes;
+        this.maxPhotoFileSizeBytes = maxPhotoFileSizeBytes;
     }
 
     @ExceptionHandler(ApiException.class)
@@ -48,7 +52,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<ApiErrorResponse> handleUploadTooLarge() {
+    ResponseEntity<ApiErrorResponse> handleUploadTooLarge(HttpServletRequest request) {
+        if (request.getRequestURI().endsWith("/photo")) {
+            return error(HttpStatus.PAYLOAD_TOO_LARGE, "PHOTO_TOO_LARGE",
+                    "La foto supera el limite permitido de " + (maxPhotoFileSizeBytes / 1_000_000) + " MB.");
+        }
         return error(HttpStatus.PAYLOAD_TOO_LARGE, "VIDEO_TOO_LARGE",
                 "El video supera el limite permitido de " + (maxVideoFileSizeBytes / 1_000_000) + " MB.");
     }

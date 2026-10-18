@@ -223,6 +223,54 @@ paths:
         "401":
           description: No autenticado
 
+  /athletes/{athleteId}/photo:
+    put:
+      tags: [Users]
+      summary: Cargar o reemplazar la foto de perfil del deportista
+      description: Acepta imágenes JPEG o PNG de hasta 5 MB. El archivo se almacena en el servidor.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/AthleteId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Foto almacenada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AthletePhoto"
+        "400":
+          description: Archivo que no es una imagen JPEG o PNG válida
+        "403":
+          description: Solo el propietario deportista puede cargar su foto
+        "413":
+          description: El archivo supera el límite de 5 MB
+    get:
+      tags: [Users]
+      summary: Obtener la foto almacenada de un deportista
+      parameters:
+        - $ref: "#/components/parameters/AthleteId"
+      responses:
+        "200":
+          description: Archivo de imagen del perfil
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        "404":
+          description: Foto no disponible públicamente o inexistente
+
   /videos/{videoId}:
     delete:
       tags: [Videos]
@@ -335,28 +383,33 @@ paths:
       parameters:
         - name: sport
           in: query
+          description: Coincidencia exacta sin distinguir mayúsculas/minúsculas.
           schema: { type: string }
           example: fútbol
         - name: position
           in: query
+          description: Coincidencia exacta sin distinguir mayúsculas/minúsculas.
           schema: { type: string }
           example: delantero
         - name: minAge
           in: query
-          schema: { type: integer }
+          description: Edad mínima inclusiva (entre 0 y 120 años).
+          schema: { type: integer, minimum: 0, maximum: 120 }
         - name: maxAge
           in: query
-          schema: { type: integer }
+          description: Edad máxima inclusiva (entre 0 y 120 años).
+          schema: { type: integer, minimum: 0, maximum: 120 }
         - name: region
           in: query
+          description: Coincidencia exacta sin distinguir mayúsculas/minúsculas.
           schema: { type: string }
           example: Quindío
         - name: page
           in: query
-          schema: { type: integer, default: 0 }
+          schema: { type: integer, default: 0, minimum: 0 }
         - name: size
           in: query
-          schema: { type: integer, default: 20 }
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
       responses:
         "200":
           description: Página de resultados de búsqueda
@@ -364,6 +417,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AthleteSearchPage"
+        "401":
+          description: No autenticado
+        "403":
+          description: Solo ojeadores y entrenadores pueden buscar deportistas
+        "422":
+          description: Filtros o paginación no válidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /athletes/{athleteId}/interest:
     post:
@@ -642,10 +705,42 @@ components:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/AthletePublicProfile"
+            $ref: "#/components/schemas/AthleteSearchResult"
         page: { type: integer }
+        size: { type: integer }
         totalPages: { type: integer }
         totalElements: { type: integer }
+        first: { type: boolean }
+        last: { type: boolean }
+        message:
+          type: string
+          nullable: true
+          description: Mensaje informativo cuando no se encuentran coincidencias.
+
+    AthleteSearchResult:
+      type: object
+      required: [athleteId, fullName, sport, position, age, region]
+      properties:
+        athleteId: { type: string, format: uuid }
+        photoUrl:
+          type: string
+          format: uri-reference
+          nullable: true
+          description: Ruta para consultar la foto almacenada, si existe.
+        fullName: { type: string }
+        sport: { type: string }
+        position: { type: string }
+        age: { type: integer, minimum: 0 }
+        region: { type: string }
+
+    AthletePhoto:
+      type: object
+      required: [athleteId, photoUrl, contentType, sizeBytes]
+      properties:
+        athleteId: { type: string, format: uuid }
+        photoUrl: { type: string, format: uri-reference }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+        sizeBytes: { type: integer, format: int64 }
 
     RequestStatus:
       type: string
