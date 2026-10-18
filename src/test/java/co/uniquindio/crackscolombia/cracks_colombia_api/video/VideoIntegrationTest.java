@@ -296,11 +296,11 @@ class VideoIntegrationTest {
     }
 
     private byte[] validMp4(int durationSeconds) throws IOException {
-        byte[] fileType = box("ftyp", concat(ascii("isom"), intBytes(0), ascii("isom"), ascii("avc1")));
+        byte[] fileType = box("ftyp", concat(ascii("isom"), intBytes(0), ascii("isom"), ascii("mp4v")));
         byte[] movieHeader = box("mvhd", concat(intBytes(0), intBytes(0), intBytes(0),
                 intBytes(1_000), intBytes(durationSeconds * 1_000)));
         byte[] handler = box("hdlr", concat(intBytes(0), intBytes(0), ascii("vide")));
-        byte[] sampleEntry = box("avc1", new byte[0]);
+        byte[] sampleEntry = box("mp4v", new byte[0]);
         byte[] sampleDescription = box("stsd", concat(intBytes(0), intBytes(1), sampleEntry));
         byte[] sampleSizes = box("stsz", concat(intBytes(0), intBytes(0), intBytes(1)));
         byte[] sampleTable = box("stbl", concat(sampleDescription, sampleSizes));

@@ -111,7 +111,7 @@ public class VideoStorageService {
 
         String originalName = upload.getOriginalFilename();
         if (originalName == null || !originalName.toLowerCase(Locale.ROOT).endsWith(".mp4")) {
-            throw ApiException.invalidVideo("El formato permitido es MP4 con video H.264 (.mp4).");
+            throw ApiException.invalidVideo("El formato permitido es MP4 (.mp4).");
         }
 
         String contentType = upload.getContentType();
