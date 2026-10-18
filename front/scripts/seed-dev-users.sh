@@ -1,5 +1,6 @@
 #!/bin/sh
-# Creates one mock user per role in the local backend. Public registration only
+# Creates one test user per role in the local backend, plus a few athletes with
+# complete profiles so the search has results. Public registration only
 # allows DEPORTISTA and OJEADOR_ENTRENADOR, so the moderator and admin are
 # registered through the API (to get real password hashes) and then promoted in
 # the database. Safe to run repeatedly.
@@ -34,6 +35,30 @@ register deportista.menor@cracks.test "Sofía Gómez"    DEPORTISTA         2010
 register entrenador@cracks.test       "Carlos Ramírez" OJEADOR_ENTRENADOR "" null
 register moderador@cracks.test        "Laura Moderadora" OJEADOR_ENTRENADOR "" null
 register admin@cracks.test            "Admin Cracks"   OJEADOR_ENTRENADOR "" null
+register kevin@cracks.test            "Kevin Hurtado"  DEPORTISTA         2007-06-02 null
+register daniela@cracks.test          "Daniela Pantoja" DEPORTISTA        2006-09-30 null
+register samuel@cracks.test           "Samuel Arrieta" DEPORTISTA         2005-04-18 null
+register brayan@cracks.test           "Brayan Mena"    DEPORTISTA         2006-11-05 null
+
+login_token() { # email
+  curl -s -X POST "$API_URL/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$1\",\"password\":\"$PASSWORD\"}" | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'
+}
+
+profile() { # email json — fills the profile through PUT /users/me
+  token=$(login_token "$1")
+  status=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API_URL/users/me" \
+    -H "Authorization: Bearer $token" -H 'Content-Type: application/json' -d "$2") || status=000
+  [ "$status" = 200 ] && echo "perfil     $1" || { echo "Error $status guardando el perfil de $1" >&2; exit 1; }
+}
+
+profile deportista@cracks.test '{"sport":"Fútbol","position":"Delantero","region":"Quindío","heightCm":178,"weightKg":70,"trajectory":"Goleador de la Liga Quindiana Sub-20 en 2025 con 14 goles."}'
+profile deportista.menor@cracks.test '{"sport":"Atletismo","position":"Velocidad 100 m","region":"Chocó","heightCm":165,"weightKg":54,"trajectory":"Campeona departamental de 100 m en 2025 con 12,1 s."}'
+profile kevin@cracks.test '{"sport":"Fútbol","position":"Volante","region":"Valle del Cauca","heightCm":172,"weightKg":66,"trajectory":"Volante de marca en la liga vallecaucana."}'
+profile daniela@cracks.test '{"sport":"Voleibol","position":"Armador","region":"Nariño","heightCm":181,"weightKg":68,"trajectory":"Armadora de la selección Nariño en los Juegos Nacionales Juveniles 2025."}'
+profile samuel@cracks.test '{"sport":"Baloncesto","position":"Base","region":"Bolívar","heightCm":185,"weightKg":74,"trajectory":"Base titular del torneo departamental de Bolívar."}'
+profile brayan@cracks.test '{"sport":"Fútbol","position":"Portero","region":"Risaralda","heightCm":188,"weightKg":80,"trajectory":"Valla menos vencida del torneo departamental Sub-20 de 2025."}'
+profile entrenador@cracks.test '{"club":"Academia Cafetera FC","contactPhone":"+57 300 555 0142"}'
 
 PROMOTE_SQL="UPDATE user_accounts SET role = 'MODERADOR' WHERE email = 'moderador@cracks.test';
 UPDATE user_accounts SET role = 'ADMIN' WHERE email = 'admin@cracks.test';"

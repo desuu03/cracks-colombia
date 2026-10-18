@@ -30,10 +30,11 @@ npm run dev            # http://localhost:5173
 | `entrenador@cracks.test` | OJEADOR_ENTRENADOR |
 | `moderador@cracks.test` | MODERADOR |
 | `admin@cracks.test` | ADMIN |
+| `kevin@`, `daniela@`, `samuel@`, `brayan@cracks.test` | DEPORTISTA, con perfil para la búsqueda |
 
 Contraseña de todos: `Cracks2026!` (cambiable con `SEED_PASSWORD`). El registro público no permite
 MODERADOR ni ADMIN, así que el script los registra por la API y luego cambia el rol en la base de
-datos. Con PostgreSQL usa `DB_KIND=postgres ./scripts/seed-dev-users.sh`. Para empezar de cero,
+datos. También llena por la API los perfiles de los deportistas y el club del entrenador. Con PostgreSQL usa `DB_KIND=postgres ./scripts/seed-dev-users.sh`. Para empezar de cero,
 detén el backend y borra `.dev-data/`.
 
 ### Proxy
@@ -60,32 +61,19 @@ Diseño aprobado por el equipo en el prototipo de revisión (8 pantallas).
 | Campana (barra superior) | Ambos | Panel de notificaciones; se consulta cada 60 s |
 | `/mis-videos` | `DEPORTISTA` | Carga y galería de videos (HU-03) |
 
-## API simulada
+## Backend
 
-El backend aún no implementa perfil, búsqueda, interés, solicitudes ni notificaciones. Con
-`VITE_USE_MOCKS=true` (activo por defecto en `npm run dev`, ver `.env.development`) esos endpoints
-se responden en el navegador desde `src/mocks/server.js`, siguiendo el contrato OpenAPI. Registro,
-login y videos siempre usan el backend real.
+Todas las pantallas usan el backend real. Los endpoints de perfil, perfil público, interés,
+solicitudes y notificaciones están en los paquetes `user`, `match` y `notification` del backend, con
+sus pruebas en `UserProfileIntegrationTest` y `MatchRequestIntegrationTest`. Decisiones tomadas:
 
-- Los datos simulados se guardan en `localStorage`. Si entras como ojeador y luego como deportista
-  en el mismo navegador, cada uno ve las solicitudes y notificaciones del otro.
-- Incluye 8 deportistas de ejemplo para la búsqueda.
-- Para empezar de cero, borra la clave `cracks.mock.v1` del `localStorage` del navegador.
-- Cuando el backend implemente un endpoint, quita su ruta de `src/mocks/server.js`. Cuando estén
-  todos, pon `VITE_USE_MOCKS=false` y borra la carpeta `src/mocks/`.
-
-### Lo que el backend debe agregar al contrato
-
-La interfaz necesita estos campos, que el contrato actual no tiene (la simulación ya los devuelve):
-
-- `MatchRequest`: `athleteName`, `athleteSummary`, `scoutName`, `scoutClub` y `contact`. Sin ellos la
-  bandeja solo tiene identificadores y no hay endpoint para consultar el perfil de un ojeador.
-- `AthletePublicProfile`: `interestedByMe` y `pendingRequestByMe`. Sin ellos, al recargar la página el
-  ojeador no sabe si ya marcó interés o ya envió una solicitud.
-- `PATCH /requests/{id}/respond` recibe `ACCEPTED`/`REJECTED` pero el estado es `ACEPTADA`/`RECHAZADA`.
-  Conviene unificarlo.
-- `PUT /users/me` acepta `birthDate`. El diseño aprobado la bloquea porque define si hace falta
-  autorización del acudiente; el backend debería ignorarla o rechazarla.
+- Un perfil de deportista completo (deporte, posición y departamento) queda `APROBADO` al guardarlo,
+  para que aparezca en la búsqueda. Con `app.profile.auto-approve=false` queda `PENDIENTE`.
+- `PUT /users/me` no cambia la fecha de nacimiento: define si hace falta autorización del acudiente.
+- El perfil público devuelve la edad, no la fecha de nacimiento ni el correo.
+- Al aceptar una solicitud, el ojeador ve el correo del deportista o, si es menor, el del acudiente.
+  El deportista ve el club, el teléfono y el correo del ojeador.
+- Un ojeador genera como máximo una notificación «vio tu perfil» por deportista y día.
 
 ## Notas de implementación
 

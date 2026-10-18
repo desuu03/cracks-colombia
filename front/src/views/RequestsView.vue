@@ -45,6 +45,9 @@ async function respond(request, decision) {
   }
 }
 
+const athleteSummary = (a) => [a.sport, a.position, a.region].filter(Boolean).join(' · ')
+const contactLine = (c) => [c?.phone, c?.email].filter(Boolean).join(' · ')
+
 function statusLabel(status) {
   if (!isAthlete.value && status === 'PENDIENTE') return 'Esperando respuesta'
   return REQUEST_STATUS_LABELS[status] ?? status
@@ -89,14 +92,14 @@ function statusLabel(status) {
       <article v-for="request in shown" :key="request.id" class="card request-card">
         <div class="request-head">
           <div class="athlete-head">
-            <span class="avatar" aria-hidden="true">{{ initials(isAthlete ? request.scoutClub || request.scoutName : request.athleteName) }}</span>
+            <span class="avatar" aria-hidden="true">{{ initials(isAthlete ? request.scout.club || request.scout.fullName : request.athlete.fullName) }}</span>
             <div v-if="isAthlete">
-              <b>{{ request.scoutClub || request.scoutName }}</b>
-              <div class="hint">{{ request.scoutClub ? `${request.scoutName} · ` : '' }}Ojeador / Entrenador</div>
+              <b>{{ request.scout.club || request.scout.fullName }}</b>
+              <div class="hint">{{ request.scout.club ? `${request.scout.fullName} · ` : '' }}Ojeador / Entrenador</div>
             </div>
             <div v-else>
-              <RouterLink :to="{ name: 'athlete-profile', params: { athleteId: request.athleteId } }"><b>{{ request.athleteName }}</b></RouterLink>
-              <div class="hint">{{ request.athleteSummary }}</div>
+              <RouterLink :to="{ name: 'athlete-profile', params: { athleteId: request.athleteId } }"><b>{{ request.athlete.fullName }}</b></RouterLink>
+              <div class="hint">{{ athleteSummary(request.athlete) }}</div>
             </div>
           </div>
           <span :class="['badge', `badge-${request.status}`]">{{ statusLabel(request.status) }}</span>
@@ -129,7 +132,7 @@ function statusLabel(status) {
 
         <div v-if="request.status === 'ACEPTADA'" class="contact-box">
           <b>Contacto compartido</b>
-          <span>{{ request.contact || 'Datos de contacto no disponibles.' }}</span>
+          <span>{{ contactLine(request.contact) || 'Datos de contacto no disponibles.' }}</span>
         </div>
       </article>
     </div>

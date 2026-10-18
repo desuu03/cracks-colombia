@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { searchAthletes } from '../api/search'
 import { POSITIONS, REGIONS, SPORTS } from '../constants/catalog'
-import { ageOn } from '../utils/age'
+import { apiUrl } from '../api/http'
 import { initials } from '../utils/format'
 
 const PAGE_SIZE = 12
@@ -16,7 +16,7 @@ const router = useRouter()
 // Filters live in the URL, so "Volver a resultados" and shared links keep them.
 const filters = reactive(Object.fromEntries(FILTER_KEYS.map((k) => [k, ''])))
 const page = ref(0)
-const result = ref({ items: [], page: 0, totalPages: 1, totalElements: 0 })
+const result = ref({ items: [], page: 0, totalPages: 0, totalElements: 0, message: null })
 const loading = ref(true)
 const error = ref('')
 const positions = computed(() => POSITIONS[filters.sport] ?? [])
@@ -118,35 +118,32 @@ function clearFilters() {
         <div class="pager">
           <span><b style="color: var(--text)">{{ result.totalElements }}</b> deportista{{ result.totalElements === 1 ? '' : 's' }}</span>
           <span v-if="loading">Buscando…</span>
-          <span v-else>Página {{ result.page + 1 }} de {{ result.totalPages }}</span>
+          <span v-else-if="result.totalPages">Página {{ result.page + 1 }} de {{ result.totalPages }}</span>
         </div>
 
         <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
         <div v-else-if="!loading && result.items.length === 0" class="card empty">
-          Ningún deportista coincide con estos filtros. Prueba ampliando el rango de edad o quitando el departamento.
+          {{ result.message || 'Ningún deportista coincide con estos filtros.' }} Prueba ampliando el rango de edad o quitando el departamento.
         </div>
         <div v-else class="results">
           <RouterLink
             v-for="athlete in result.items"
-            :key="athlete.id"
+            :key="athlete.athleteId"
             class="athlete-card"
-            :to="{ name: 'athlete-profile', params: { athleteId: athlete.id } }"
+            :to="{ name: 'athlete-profile', params: { athleteId: athlete.athleteId } }"
           >
             <div class="athlete-head">
-              <span class="avatar" aria-hidden="true">{{ initials(athlete.fullName) }}</span>
+              <img v-if="athlete.photoUrl" class="avatar" :src="apiUrl(athlete.photoUrl)" alt="" />
+              <span v-else class="avatar" aria-hidden="true">{{ initials(athlete.fullName) }}</span>
               <div>
                 <h3>{{ athlete.fullName }}</h3>
                 <span class="hint">{{ athlete.sport }} · {{ athlete.position }}</span>
               </div>
             </div>
             <div class="facts">
-              <span v-if="athlete.birthDate">{{ ageOn(athlete.birthDate) }} años</span>
-              <span v-if="athlete.heightCm">{{ athlete.heightCm }} cm</span>
+              <span>{{ athlete.age }} años</span>
               <span>{{ athlete.region }}</span>
             </div>
-            <span v-if="athlete.videos?.length" class="badge">
-              {{ athlete.videos.length }} video{{ athlete.videos.length === 1 ? '' : 's' }} aprobado{{ athlete.videos.length === 1 ? '' : 's' }}
-            </span>
           </RouterLink>
         </div>
 

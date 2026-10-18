@@ -6,7 +6,8 @@ const props = defineProps({
   profile: { type: Object, required: true },
 })
 
-const age = computed(() => (props.profile.birthDate ? ageOn(props.profile.birthDate) : null))
+// Public profiles carry `age`; the athlete's own forms only know `birthDate`.
+const age = computed(() => props.profile.age ?? (props.profile.birthDate ? ageOn(props.profile.birthDate) : null))
 </script>
 
 <template>

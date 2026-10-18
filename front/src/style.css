@@ -245,3 +245,5 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 2rem; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+img.avatar { object-fit: cover; padding: 0; }

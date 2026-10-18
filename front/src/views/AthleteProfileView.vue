@@ -6,9 +6,9 @@ import VideoCard from '../components/VideoCard.vue'
 import { getAthleteProfile } from '../api/profile'
 import { createRequest } from '../api/requests'
 import { markInterest } from '../api/search'
+import { apiUrl } from '../api/http'
 import { listApprovedVideos } from '../api/videos'
 import { session } from '../stores/session'
-import { ageOn } from '../utils/age'
 import { initials } from '../utils/format'
 
 const props = defineProps({
@@ -30,7 +30,7 @@ const sentNotice = ref('')
 
 const isScout = computed(() => session.user?.role === 'OJEADOR_ENTRENADOR')
 const isOwner = computed(() => session.user?.id === props.athleteId)
-const isMinor = computed(() => Boolean(profile.value?.birthDate) && ageOn(profile.value.birthDate) < 18)
+const isMinor = computed(() => profile.value?.age != null && profile.value.age < 18)
 const hasSportProfile = computed(() => Boolean(profile.value?.sport))
 // datetime-local min: now, in local time.
 const minProposed = computed(() => {
@@ -120,7 +120,8 @@ async function sendRequest() {
       <div class="hero-inner">
         <RouterLink v-if="isScout" :to="{ name: 'search' }">← Volver a resultados</RouterLink>
         <div class="row" style="gap: 1rem">
-          <span class="avatar avatar-lg" aria-hidden="true">{{ initials(profile.fullName) }}</span>
+          <img v-if="profile.photoUrl" class="avatar avatar-lg" :src="apiUrl(profile.photoUrl)" alt="" />
+          <span v-else class="avatar avatar-lg" aria-hidden="true">{{ initials(profile.fullName) }}</span>
           <div style="display: grid; gap: 0.4rem">
             <h1>{{ profile.fullName }}</h1>
             <div class="hero-meta">
