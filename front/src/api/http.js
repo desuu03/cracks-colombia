@@ -1,6 +1,7 @@
 import { session, logout } from '../stores/session'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '')
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 
 /** Error carrying the backend's ApiErrorResponse `code` and `message`. */
 export class ApiError extends Error {
@@ -53,6 +54,12 @@ async function send(path, init) {
 
 /** JSON request. Returns the parsed body, or null for 204 responses. */
 export async function request(path, { method = 'GET', json } = {}) {
+  if (USE_MOCKS) {
+    // Loaded lazily so production builds without mocks never execute it.
+    const { mockRequest } = await import('../mocks/server.js')
+    const mocked = await mockRequest(method, path, json)
+    if (mocked !== undefined) return mocked
+  }
   const init = { method, headers: {} }
   if (json !== undefined) {
     init.headers['Content-Type'] = 'application/json'

@@ -46,12 +46,46 @@ definir `VITE_API_BASE_URL` antes de `npm run build`.
 
 ## Pantallas
 
-| Ruta | Quién | HU |
+Diseño aprobado por el equipo en el prototipo de revisión (8 pantallas).
+
+| Ruta | Quién | Pantalla |
 | --- | --- | --- |
-| `/registro` | Público | HU-01: rol, fecha de nacimiento, autorización del acudiente para menores, consentimiento de datos |
-| `/login` | Público | HU-01 |
-| `/mis-videos` | `DEPORTISTA` | HU-03: carga MP4 con progreso, galería con estados de moderación, eliminación |
-| `/deportistas/:athleteId/videos` | Público | HU-03: solo videos aprobados |
+| `/registro` | Público | Registro con rol, fecha de nacimiento, autorización del acudiente y consentimiento (HU-01) |
+| `/login` | Público | Inicio de sesión (HU-01). El deportista sin perfil va a `/perfil/crear` |
+| `/perfil/crear` | `DEPORTISTA` | Crear perfil en tres pasos: deporte y posición, datos físicos, trayectoria |
+| `/perfil` | `DEPORTISTA` | Editar perfil, con vista previa de cómo lo ven los ojeadores |
+| `/deportistas/:athleteId` | Público | Vista pública del perfil; el ojeador marca interés y solicita contacto |
+| `/buscar` | `OJEADOR_ENTRENADOR` | Búsqueda con filtros (deporte, posición, edad, departamento) y resultados paginados |
+| `/solicitudes` | Ambos | Bandeja: el deportista acepta o rechaza; el ojeador sigue el estado de las enviadas |
+| Campana (barra superior) | Ambos | Panel de notificaciones; se consulta cada 60 s |
+| `/mis-videos` | `DEPORTISTA` | Carga y galería de videos (HU-03) |
+
+## API simulada
+
+El backend aún no implementa perfil, búsqueda, interés, solicitudes ni notificaciones. Con
+`VITE_USE_MOCKS=true` (activo por defecto en `npm run dev`, ver `.env.development`) esos endpoints
+se responden en el navegador desde `src/mocks/server.js`, siguiendo el contrato OpenAPI. Registro,
+login y videos siempre usan el backend real.
+
+- Los datos simulados se guardan en `localStorage`. Si entras como ojeador y luego como deportista
+  en el mismo navegador, cada uno ve las solicitudes y notificaciones del otro.
+- Incluye 8 deportistas de ejemplo para la búsqueda.
+- Para empezar de cero, borra la clave `cracks.mock.v1` del `localStorage` del navegador.
+- Cuando el backend implemente un endpoint, quita su ruta de `src/mocks/server.js`. Cuando estén
+  todos, pon `VITE_USE_MOCKS=false` y borra la carpeta `src/mocks/`.
+
+### Lo que el backend debe agregar al contrato
+
+La interfaz necesita estos campos, que el contrato actual no tiene (la simulación ya los devuelve):
+
+- `MatchRequest`: `athleteName`, `athleteSummary`, `scoutName`, `scoutClub` y `contact`. Sin ellos la
+  bandeja solo tiene identificadores y no hay endpoint para consultar el perfil de un ojeador.
+- `AthletePublicProfile`: `interestedByMe` y `pendingRequestByMe`. Sin ellos, al recargar la página el
+  ojeador no sabe si ya marcó interés o ya envió una solicitud.
+- `PATCH /requests/{id}/respond` recibe `ACCEPTED`/`REJECTED` pero el estado es `ACEPTADA`/`RECHAZADA`.
+  Conviene unificarlo.
+- `PUT /users/me` acepta `birthDate`. El diseño aprobado la bloquea porque define si hace falta
+  autorización del acudiente; el backend debería ignorarla o rechazarla.
 
 ## Notas de implementación
 

@@ -1,9 +1,11 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import AuthLayout from '../components/AuthLayout.vue'
 import { register } from '../api/auth'
 import { startSession } from '../stores/session'
 import { isMinor, todayIso } from '../utils/age'
+import { homeFor } from '../router'
 
 const router = useRouter()
 
@@ -76,7 +78,7 @@ async function submit() {
   try {
     const auth = await register(buildPayload())
     startSession(auth)
-    router.replace(auth.user.role === 'DEPORTISTA' ? { name: 'my-videos' } : { name: 'home' })
+    router.replace(auth.user.role === 'DEPORTISTA' ? { name: 'profile-create' } : homeFor(auth.user.role))
   } catch (e) {
     serverError.value = e.message
   } finally {
@@ -86,11 +88,10 @@ async function submit() {
 </script>
 
 <template>
-  <section class="narrow">
-    <h1>Crear cuenta</h1>
-    <p class="lead">Muestra tu talento o encuentra a los próximos cracks del país.</p>
-
-    <form class="card stack" novalidate @submit.prevent="submit">
+  <AuthLayout text="Sube videos de tus jugadas y llega a ojeadores y clubes de todo el país sin viajar a un torneo.">
+    <template #headline>Muestra tu juego. <em>Te están buscando.</em></template>
+    <form class="stack" novalidate @submit.prevent="submit">
+      <h2>Crear cuenta</h2>
       <p v-if="serverError" class="alert alert-error" role="alert">{{ serverError }}</p>
 
       <fieldset>
@@ -165,5 +166,5 @@ async function submit() {
         ¿Ya tienes cuenta? <RouterLink :to="{ name: 'login' }">Inicia sesión</RouterLink>
       </p>
     </form>
-  </section>
+  </AuthLayout>
 </template>

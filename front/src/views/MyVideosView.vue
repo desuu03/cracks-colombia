@@ -50,7 +50,7 @@ onMounted(load)
         <h1>Mis videos</h1>
         <p class="lead" style="margin: 0">Tu galería completa, con el estado de revisión de cada video.</p>
       </div>
-      <RouterLink class="btn btn-ghost" :to="{ name: 'athlete-videos', params: { athleteId: session.user.id } }">
+      <RouterLink class="btn btn-ghost" :to="{ name: 'athlete-profile', params: { athleteId: session.user.id } }">
         Ver mi perfil público
       </RouterLink>
     </div>
