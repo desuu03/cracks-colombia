@@ -198,7 +198,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Archivo MP4 con video H.264 de hasta 50 MB y 60 segundos.
+                  description: Archivo MP4 con cualquier codec de video, de hasta 50 MB y 60 segundos.
       responses:
         "201":
           description: Video cargado y puesto en estado pendiente de moderación
@@ -207,7 +207,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Video"
         "400":
-          description: Archivo vacio, formato MP4/H.264 invalido o duracion mayor a 60 segundos
+          description: Archivo vacio, formato MP4 invalido o duracion mayor a 60 segundos
           content:
             application/json:
               schema:

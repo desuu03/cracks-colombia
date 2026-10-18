@@ -99,7 +99,7 @@ public class Mp4MetadataReader {
                 continue;
             }
             boolean hasSampleDescription = false;
-            boolean hasH264SampleEntry = false;
+            boolean hasSampleEntry = false;
             boolean hasSampleSizes = false;
             for (Box sampleTable : readBoxes(channel, child.contentOffset(), child.endOffset())) {
                 if (sampleTable.type().equals("stsd") && sampleTable.contentLength() >= 8) {
@@ -109,8 +109,7 @@ public class Mp4MetadataReader {
                     List<Box> entries = readBoxes(channel, sampleTable.contentOffset() + 8,
                             sampleTable.endOffset());
                     hasSampleDescription = entryCount > 0 && entries.size() == entryCount;
-                    hasH264SampleEntry = entries.stream()
-                            .anyMatch(entry -> entry.type().equals("avc1") || entry.type().equals("avc3"));
+                    hasSampleEntry = !entries.isEmpty();
                 } else if ((sampleTable.type().equals("stsz") || sampleTable.type().equals("stz2"))
                         && sampleTable.contentLength() >= 12) {
                     byte[] header = readBytes(channel, sampleTable.contentOffset(), 12);
@@ -119,7 +118,7 @@ public class Mp4MetadataReader {
                     hasSampleSizes = sampleCount > 0;
                 }
             }
-            if (hasSampleDescription && hasH264SampleEntry && hasSampleSizes) {
+            if (hasSampleDescription && hasSampleEntry && hasSampleSizes) {
                 return true;
             }
         }
@@ -226,7 +225,7 @@ public class Mp4MetadataReader {
 
     private ApiException invalidFormat() {
         return ApiException.invalidVideo(
-                "El archivo debe ser un MP4 valido con video H.264 reproducible.");
+                "El archivo debe ser un MP4 valido con una pista de video.");
     }
 
     private record Box(long offset, long size, int headerSize, String type) {

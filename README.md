@@ -22,7 +22,7 @@ Las pruebas usan una base H2 aislada y un secreto de prueba; no requieren Postgr
 
 ## HU-03: videos de habilidades
 
-`POST /athletes/{athleteId}/videos` recibe el archivo en `multipart/form-data` bajo el campo `file`. El backend solo acepta MP4 con video H.264, verifica la estructura del contenedor, las muestras de video, la duracion real (maximo 60 segundos) y el tamano (maximo 50 MB). Los videos quedan guardados en el filesystem del servidor con un nombre aleatorio, nunca con el nombre enviado por el usuario. Antes de aceptar un video, valida que exista el consentimiento de tratamiento de datos y, si el deportista es menor, la autorizacion registrada de su acudiente.
+`POST /athletes/{athleteId}/videos` recibe el archivo en `multipart/form-data` bajo el campo `file`. El backend acepta archivos MP4 independientemente del codec de video, y verifica la estructura del contenedor, las muestras de video, la duracion real (maximo 60 segundos) y el tamano (maximo 50 MB). Los videos quedan guardados en el filesystem del servidor con un nombre aleatorio, nunca con el nombre enviado por el usuario. Antes de aceptar un video, valida que exista el consentimiento de tratamiento de datos y, si el deportista es menor, la autorizacion registrada de su acudiente.
 
 `GET /users/me/videos` devuelve la galeria completa del deportista autenticado, incluidos los estados de moderacion. `GET /athletes/{athleteId}/videos` devuelve solo videos aprobados. La propiedad `url` de cada video apunta a `GET /videos/{videoId}/content`, que transmite el MP4 y permite al navegador reproducirlo; los videos pendientes o rechazados solo son visibles para el propietario y moderadores. El deportista puede eliminar sus archivos con `DELETE /videos/{videoId}`.
 
