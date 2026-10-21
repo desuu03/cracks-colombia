@@ -5,9 +5,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Closed lists for sport, position and region. They match the options of the
- * frontend (front/src/constants/catalog.js) so search filters find what athletes
- * entered.
+ * Closed lists for sport, position and region. Keep them aligned with the
+ * frontend catalog so search filters match what athletes save on their profile.
  */
 public final class SportsCatalog {
 

@@ -1,43 +1,203 @@
-# cracks-colombia
-Proyecto académico para Software III. Plataforma de emparejamiento de entrenadores y prospectos y talentos jóvenes colombianos.
+# cracks-colombia-api
 
-El backend (Spring Boot) vive en la raíz del repositorio y el frontend (Vue 3 + Vite) en [`front/`](front/README.md).
+API REST de **Cracks Colombia**, proyecto académico de Software III (Universidad del Quindío). Conecta deportistas jóvenes con ojeadores y entrenadores.
 
-## HU-01: registro e inicio de sesión
+Este repositorio contiene **solo el backend**. El frontend vive en un repositorio aparte.
 
-El backend expone `POST /auth/register` y `POST /auth/login`. El registro público solo permite `DEPORTISTA` y `OJEADOR_ENTRENADOR`. Las contraseñas se almacenan con PBKDF2 y el login devuelve un token JWT con el rol del usuario.
+- Java 21
+- Spring Boot 4.1.1 (Web, Security, JPA, Validation)
+- PostgreSQL 16 (desarrollo local con Docker)
+- JWT + contraseñas PBKDF2
+- OpenAPI / Swagger
 
-Todos los registros deben enviar `dataProcessingConsent: true`. Para deportistas, `birthDate` es obligatorio. Si el servidor calcula que la persona tiene menos de 18 años, también exige `guardianConsent` con nombre, correo y `accepted: true`. La mayoría de edad se calcula en el servidor a partir de la fecha de nacimiento.
+## Requisitos
 
-La búsqueda, el marcado de interés y la creación de solicitudes requieren `OJEADOR_ENTRENADOR`. La carga/eliminación de videos y la respuesta a solicitudes requieren `DEPORTISTA`. El token se envía en `Authorization: Bearer <token>`.
+- Java 21
+- Maven Wrapper (`mvnw` / `mvnw.cmd`)
+- Docker Desktop (para PostgreSQL local)
 
-### Configuración local
+## Arranque local
 
-- `DB_URL` (por defecto `jdbc:postgresql://localhost:5432/cracks_colombia`)
-- `DB_USERNAME` (por defecto `postgres`)
-- `DB_PASSWORD`
-- `DB_DDL_AUTO` (por defecto `update`, para el esquema local de desarrollo)
-- `JWT_SECRET_BASE64` (obligatorio; secreto aleatorio en Base64 de al menos 32 bytes)
-- `JWT_EXPIRATION_MS` (por defecto `3600000`, una hora)
+### 1. Base de datos
 
-Las pruebas usan una base H2 aislada y un secreto de prueba; no requieren PostgreSQL ni `JWT_SECRET_BASE64`.
+```powershell
+docker compose up -d
+```
 
-## HU-03: videos de habilidades
+Credenciales de desarrollo:
 
-`POST /athletes/{athleteId}/videos` recibe el archivo en `multipart/form-data` bajo el campo `file`. El backend acepta archivos MP4 independientemente del codec de video, y verifica la estructura del contenedor, las muestras de video, la duracion real (maximo 60 segundos) y el tamano (maximo 50 MB). Los videos quedan guardados en el filesystem del servidor con un nombre aleatorio, nunca con el nombre enviado por el usuario. Antes de aceptar un video, valida que exista el consentimiento de tratamiento de datos y, si el deportista es menor, la autorizacion registrada de su acudiente.
+| Dato | Valor |
+| --- | --- |
+| Host | `localhost` |
+| Puerto | `5432` |
+| Base | `cracks_colombia` |
+| Usuario | `postgres` |
+| Contraseña | `postgres` |
 
-`GET /users/me/videos` devuelve la galeria completa del deportista autenticado, incluidos los estados de moderacion. `GET /athletes/{athleteId}/videos` devuelve solo videos aprobados. La propiedad `url` de cada video apunta a `GET /videos/{videoId}/content`, que transmite el MP4 y permite al navegador reproducirlo; los videos pendientes o rechazados solo son visibles para el propietario y moderadores. El deportista puede eliminar sus archivos con `DELETE /videos/{videoId}`.
+Hibernate crea y actualiza las tablas al arrancar la API (`ddl-auto=update`).
 
-### Configuracion de videos
+### 2. API
 
-- `VIDEO_STORAGE_DIR` (por defecto `./data/videos`; fuera del classpath y excluido de Git)
-- `VIDEO_MAX_FILE_SIZE` (por defecto `50MB`, limite HTTP de multipart)
-- `VIDEO_MAX_REQUEST_SIZE` (por defecto `51MB`, incluye el overhead multipart)
-- `VIDEO_MAX_FILE_SIZE_BYTES` (por defecto `50000000`)
-- `VIDEO_MAX_DURATION_SECONDS` (por defecto `60`)
+En PowerShell, desde la raíz del repo:
 
-La carpeta de almacenamiento debe persistir entre reinicios y restringirse al usuario del proceso. Al desplegar en varias instancias, usa un volumen compartido o almacenamiento de objetos privado y adapta el servicio de almacenamiento para que todos los nodos lean los mismos archivos.
+```powershell
+$env:DB_URL = "jdbc:postgresql://localhost:5432/cracks_colombia"
+$env:DB_USERNAME = "postgres"
+$env:DB_PASSWORD = "postgres"
+$env:JWT_SECRET_BASE64 = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+.\mvnw.cmd spring-boot:run
+```
 
-### Migracion desde los enlaces de video
+La API queda en `http://localhost:8080`.
 
-Si una base PostgreSQL ya contiene la tabla `skill_videos` de la implementacion anterior, aplica una sola vez el script `src/main/resources/db/manual/rename-legacy-video-table.sql` antes de iniciar esta version. El script conserva la tabla anterior como archivo privado; esos enlaces no se publican ni se convierten en archivos automaticamente. Los deportistas deben volver a cargar los videos como MP4.
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI: `http://localhost:8080/v3/api-docs`
+- Contrato: `src/main/resources/static/cracks-colombia-openapi.yaml`
+
+`JWT_SECRET_BASE64` es obligatorio (mínimo 32 bytes en Base64). El valor de arriba sirve solo para desarrollo.
+
+### 3. Frontend (otro repositorio)
+
+El navegador llama a esta API desde otro origen. CORS permite por defecto `http://localhost:5173`. Cámbialo con `CORS_ALLOWED_ORIGINS` (orígenes separados por coma).
+
+El token JWT se envía en `Authorization: Bearer <token>`.
+
+## Variables de entorno
+
+| Variable | Por defecto | Uso |
+| --- | --- | --- |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/cracks_colombia` | JDBC |
+| `DB_USERNAME` | `postgres` | Usuario de PostgreSQL |
+| `DB_PASSWORD` | *(vacío)* | Obligatorio con Docker (`postgres`) |
+| `DB_DDL_AUTO` | `update` | Esquema local |
+| `JWT_SECRET_BASE64` | — | Obligatorio |
+| `JWT_EXPIRATION_MS` | `3600000` | 1 hora |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes del frontend |
+| `PROFILE_AUTO_APPROVE` | `true` | Un perfil completo queda `APROBADO` al guardarlo |
+| `VIDEO_STORAGE_DIR` | `./data/videos` | Archivos MP4 |
+| `VIDEO_MAX_FILE_SIZE` | `50MB` | Límite HTTP multipart |
+| `VIDEO_MAX_REQUEST_SIZE` | `51MB` | Incluye overhead multipart |
+| `VIDEO_MAX_FILE_SIZE_BYTES` | `50000000` | Validación de negocio |
+| `VIDEO_MAX_DURATION_SECONDS` | `60` | Duración máxima |
+| `PHOTO_STORAGE_DIR` | `./data/photos` | Fotos de perfil |
+| `PHOTO_MAX_FILE_SIZE_BYTES` | `5000000` | 5 MB |
+
+Videos y fotos se guardan en disco (no en la base) y están fuera de Git.
+
+## Consultar la base
+
+```powershell
+docker exec -it cracks-colombia-postgres psql -U postgres -d cracks_colombia
+```
+
+Comandos útiles dentro de `psql`:
+
+```sql
+\dt
+\d user_accounts
+SELECT * FROM user_accounts;
+SELECT * FROM athlete_profiles;
+SELECT * FROM skill_videos;
+```
+
+Salir de `psql`: `\q`
+
+Tablas actuales:
+
+- `user_accounts`
+- `athlete_profiles`
+- `athlete_profile_details`
+- `scout_profiles`
+- `skill_videos`
+- `scout_interests`
+- `match_requests`
+- `notifications`
+- `profile_views`
+
+## Roles
+
+| Rol | Registro público | Uso |
+| --- | --- | --- |
+| `DEPORTISTA` | Sí | Perfil, videos, foto, responder solicitudes |
+| `OJEADOR_ENTRENADOR` | Sí | Búsqueda, interés, crear solicitudes |
+| `MODERADOR` | No | `/moderation/**` (reservado) |
+| `ADMIN` | No | Reservado |
+
+## Endpoints
+
+### Auth (HU-01)
+
+- `POST /auth/register` — registro. Solo `DEPORTISTA` y `OJEADOR_ENTRENADOR`. Exige `dataProcessingConsent: true`. El deportista debe enviar `birthDate`. Si es menor de 18 (lo calcula el servidor), exige `guardianConsent`.
+- `POST /auth/login` — JWT con el rol.
+
+### Perfiles (HU-02)
+
+- `GET /users/me` — perfil autenticado
+- `PUT /users/me` — editar perfil. No cambia `birthDate`. Deportista: `sport`, `position`, `region`, `heightCm`, `weightKg`, `trajectory`. Ojeador: `club`, `contactPhone`.
+- `GET /athletes/{athleteId}` — perfil público (edad, no fecha de nacimiento ni correo)
+
+Catálogo cerrado: Fútbol, Baloncesto, Voleibol, Atletismo, con posiciones fijas y departamentos de Colombia.
+
+### Videos (HU-03)
+
+- `POST /athletes/{athleteId}/videos` — multipart campo `file`. MP4, máx. 50 MB y 60 s. Queda `PENDIENTE`.
+- `GET /users/me/videos` — galería propia (todos los estados)
+- `GET /athletes/{athleteId}/videos` — solo `APROBADO`
+- `GET /videos/{videoId}/content` — reproduce el MP4
+- `DELETE /videos/{videoId}` — elimina el archivo propio
+
+### Fotos
+
+- `PUT /athletes/{athleteId}/photo` — foto de perfil (propietario)
+- `GET /athletes/{athleteId}/photo` — imagen
+
+### Búsqueda (HU-04)
+
+- `GET /athletes/search?sport=&position=&minAge=&maxAge=&region=&page=&size=` — ojeador/entrenador, perfiles aprobados, paginado
+- `POST /athletes/{athleteId}/interest` — marca de interés
+
+### Solicitudes / Match (HU-05)
+
+- `GET /requests?status=` — enviadas o recibidas
+- `POST /requests` — crear (`athleteId`, `message`, `proposedDate` opcional)
+- `PATCH /requests/{requestId}/respond` — `ACCEPTED` o `REJECTED`. Si se acepta, se intercambian datos de contacto.
+
+### Notificaciones (HU-06)
+
+- `GET /notifications?unreadOnly=`
+- `PATCH /notifications/{notificationId}/read`
+
+Tipos: `PROFILE_VIEWED`, `REQUEST_CREATED`, `REQUEST_ACCEPTED`, `REQUEST_REJECTED`. Máximo una notificación de vista de perfil por ojeador, deportista y día.
+
+### Moderación (HU-09)
+
+Rutas `/moderation/**` reservadas al rol `MODERADOR`. Aún no hay implementación completa de cola/aprobar/rechazar.
+
+## Pruebas
+
+Usan H2 en memoria. No necesitan PostgreSQL ni `JWT_SECRET_BASE64`.
+
+```powershell
+.\mvnw.cmd test
+```
+
+- `AuthIntegrationTest`
+- `UserProfileIntegrationTest`
+- `VideoIntegrationTest`
+- `PhotoIntegrationTest`
+- `AthleteSearchIntegrationTest`
+- `MatchRequestIntegrationTest`
+
+## Estructura
+
+```
+src/main/java/.../cracks_colombia_api/
+  auth/            registro e inicio de sesión
+  user/            cuentas y perfiles
+  video/           carga y reproducción de MP4
+  photo/           foto de perfil
+  search/          filtros y paginación
+  match/           interés y solicitudes
+  notification/    bandeja de avisos
+  shared/          JWT, CORS, errores
+```
