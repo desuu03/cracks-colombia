@@ -42,6 +42,13 @@ public class MatchRequestController {
         return matchRequestService.listOwn(authenticatedEmail, status);
     }
 
+    @GetMapping("/prueba")
+    public String prueba() {
+        return "Verificando el flujo de CI CD de nuestro proyecto";
+    }
+
+
+
     @PostMapping("/requests")
     public ResponseEntity<MatchRequestResponse> create(@Valid @RequestBody MatchRequestCreateRequest request,
                                                        @AuthenticationPrincipal String authenticatedEmail) {
