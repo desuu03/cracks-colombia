@@ -23,50 +23,37 @@ variables:
   #Etiqueta de la imagen docker basada en el id de compilación
   tag: '$(Build.BuildId)'
 
-  stages:
-    - stage: BuildAndPush
-      displayName: 'Compilar e impulsar imagen docker a ACR'
-      jobs:
-        - job: Build
-          displayName: 'Build and push job'
-          steps:
-            #Tarea para construir y subir la imagen docker usando la conexión docker registry
+stages:
+  - stage: BuildAndPush
+    displayName: 'Compilar e impulsar imagen docker a ACR'
+    jobs:
+      - job: Build
+        displayName: 'Build and push job'
+        steps:
+           #Tarea para construir y subir la imagen docker usando la conexión docker registry
 
-            - task: Docker@2
-              displayName: 'Construir y subir la imagen a ACR'
-              inputs:
-                command: buildAndPush
-                repository: $(imageRepository)
-                dockerfile: '$(Build.SourceDirectory)/Dockerfile'
-                containerRegistry: $(dockerRegistryConnection)
-                tags: |
-                  $(tag)
-                  latest
-    - stage: Deploy
-      displayName: 'Desplegar a azure app service'
-      dependsOn: BuildAndPush
-      jobs:
-        - job: Deploy
-          displayName: 'Deploy Job'
-          steps:
-            #Tarea para desplegar el contenedor usando la conexión de azure resource manager
-            - task: AzureWebAppContainer@1
-              displayName: 'Desplegar contenedor en azure app service'
-              inputs:
-                azureSubscription: $(azureARMConnection)
-                appName: $(webAppName)
-                containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+          - task: Docker@2
+            displayName: 'Construir y subir la imagen a ACR'
+            inputs:
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: '$(Build.SourceDirectory)/Dockerfile'
+              containerRegistry: $(dockerRegistryConnection)
+              tags: |
+                $(tag)
+                latest
+  - stage: Deploy
+    displayName: 'Desplegar a azure app service'
+    dependsOn: BuildAndPush
+    jobs:
+      - job: Deploy
+        displayName: 'Deploy Job'
+        steps:
+          #Tarea para desplegar el contenedor usando la conexión de azure resource manager
+          - task: AzureWebAppContainer@1
+            displayName: 'Desplegar contenedor en azure app service'
+            inputs:
+              azureSubscription: $(azureARMConnection)
+              appName: $(webAppName)
+              containers: '$(containerRegistry)/$(imageRepository):$(tag)'
 
-
-
-    
-
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
