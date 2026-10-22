@@ -26,11 +26,11 @@ public interface AthleteProfileRepository extends JpaRepository<AthleteProfile, 
             where profile.status = :status
               and athlete.role = :role
               and athlete.birthDate is not null
-              and (:sport is null or lower(profile.sport) = lower(:sport))
-              and (:position is null or lower(profile.position) = lower(:position))
-              and (:region is null or lower(profile.region) = lower(:region))
-              and (:earliestBirthDate is null or athlete.birthDate >= :earliestBirthDate)
-              and (:latestBirthDate is null or athlete.birthDate <= :latestBirthDate)
+              and (cast(:sport as String) is null or lower(profile.sport) = lower(cast(:sport as String)))
+              and (cast(:position as String) is null or lower(profile.position) = lower(cast(:position as String)))
+              and (cast(:region as String) is null or lower(profile.region) = lower(cast(:region as String)))
+              and athlete.birthDate >= :earliestBirthDate
+              and athlete.birthDate <= :latestBirthDate
             order by athlete.fullName asc, athlete.id asc
             """,
             countQuery = """
@@ -40,11 +40,11 @@ public interface AthleteProfileRepository extends JpaRepository<AthleteProfile, 
             where profile.status = :status
               and athlete.role = :role
               and athlete.birthDate is not null
-              and (:sport is null or lower(profile.sport) = lower(:sport))
-              and (:position is null or lower(profile.position) = lower(:position))
-              and (:region is null or lower(profile.region) = lower(:region))
-              and (:earliestBirthDate is null or athlete.birthDate >= :earliestBirthDate)
-              and (:latestBirthDate is null or athlete.birthDate <= :latestBirthDate)
+              and (cast(:sport as String) is null or lower(profile.sport) = lower(cast(:sport as String)))
+              and (cast(:position as String) is null or lower(profile.position) = lower(cast(:position as String)))
+              and (cast(:region as String) is null or lower(profile.region) = lower(cast(:region as String)))
+              and athlete.birthDate >= :earliestBirthDate
+              and athlete.birthDate <= :latestBirthDate
             """)
     Page<AthleteSearchCandidate> searchApprovedProfiles(
             @Param("status") AthleteProfileStatus status,

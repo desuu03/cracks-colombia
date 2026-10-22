@@ -19,6 +19,8 @@ public class AthleteSearchService {
 
     private static final int MAX_AGE = 120;
     private static final int MAX_PAGE_SIZE = 100;
+    private static final LocalDate UNBOUNDED_EARLIEST_BIRTH_DATE = LocalDate.of(1, 1, 1);
+    private static final LocalDate UNBOUNDED_LATEST_BIRTH_DATE = LocalDate.of(9999, 12, 31);
     private static final String EMPTY_RESULTS_MESSAGE = "No se encontraron deportistas con los filtros aplicados.";
 
     private final AthleteProfileRepository athleteProfileRepository;
@@ -35,10 +37,12 @@ public class AthleteSearchService {
         validateFilters(minAge, maxAge, page, size);
 
         LocalDate today = LocalDate.now(clock);
+        // Sin filtro de edad se usan límites amplios en vez de null: PostgreSQL no puede inferir
+        // el tipo de un parámetro null y la consulta falla.
         LocalDate earliestBirthDate = maxAge == null
-                ? null
+                ? UNBOUNDED_EARLIEST_BIRTH_DATE
                 : today.minusYears(maxAge + 1L).plusDays(1);
-        LocalDate latestBirthDate = minAge == null ? null : today.minusYears(minAge);
+        LocalDate latestBirthDate = minAge == null ? UNBOUNDED_LATEST_BIRTH_DATE : today.minusYears(minAge);
 
         Page<AthleteSearchResult> results = athleteProfileRepository.searchApprovedProfiles(
                         AthleteProfileStatus.APROBADO,
