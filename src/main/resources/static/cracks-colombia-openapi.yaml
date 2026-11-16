@@ -315,7 +315,7 @@ paths:
   /moderation/queue:
     get:
       tags: [Moderation]
-      summary: Listar videos pendientes de moderación (rol Moderador)
+      summary: Listar videos pendientes de moderación (rol Verificador)
       description: >
         Del más antiguo al más reciente. Solo incluye videos en estado PENDIENTE.
         Cada item trae la edad y si el deportista es menor, para priorizar su protección.
@@ -410,6 +410,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+
+  /admin/verifiers:
+    post:
+      tags: [Admin]
+      summary: Crear una cuenta de verificador (solo ADMIN)
+      description: >
+        Crea la cuenta con rol VERIFICADOR y la contraseña temporal indicada.
+        Es la única forma de crear verificadores; el registro público no admite ese rol.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVerifierRequest"
+      responses:
+        "201":
+          description: Verificador creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verifier"
+        "403":
+          description: El rol autenticado no es ADMIN
+        "409":
+          description: El correo ya está registrado
+        "422":
+          description: Datos inválidos
+    get:
+      tags: [Admin]
+      summary: Listar verificadores (solo ADMIN)
+      description: Incluye cuentas activas y desactivadas, de la más antigua a la más reciente.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Lista de verificadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Verifier"
+        "403":
+          description: El rol autenticado no es ADMIN
+
+  /admin/verifiers/{verifierId}/deactivate:
+    patch:
+      tags: [Admin]
+      summary: Desactivar un verificador (solo ADMIN)
+      description: >
+        Un verificador desactivado no puede iniciar sesión ni moderar, aunque conserve un token emitido antes.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: verifierId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Verificador desactivado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Verifier"
+        "403":
+          description: El rol autenticado no es ADMIN
+        "404":
+          description: No existe un verificador con ese id
 
   /athletes/search:
     get:
@@ -612,7 +680,7 @@ components:
   schemas:
     Role:
       type: string
-      enum: [DEPORTISTA, OJEADOR_ENTRENADOR, MODERADOR, ADMIN]
+      enum: [DEPORTISTA, OJEADOR_ENTRENADOR, VERIFICADOR, ADMIN]
 
     RegisterRequest:
       type: object
@@ -839,6 +907,24 @@ components:
           enum: [PROFILE_VIEWED, REQUEST_CREATED, REQUEST_ACCEPTED, REQUEST_REJECTED]
         message: { type: string }
         read: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    CreateVerifierRequest:
+      type: object
+      required: [fullName, email, temporaryPassword]
+      properties:
+        fullName: { type: string, maxLength: 150 }
+        email: { type: string, format: email, maxLength: 254 }
+        temporaryPassword: { type: string, format: password, minLength: 8 }
+
+    Verifier:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        active: { type: boolean }
         createdAt: { type: string, format: date-time }
 
     Error:

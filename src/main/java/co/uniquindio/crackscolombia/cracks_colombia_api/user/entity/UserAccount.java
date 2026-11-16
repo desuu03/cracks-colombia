@@ -11,6 +11,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +62,11 @@ public class UserAccount {
 
     @Column(name = "data_processing_consent_accepted_at", nullable = false)
     private Instant dataProcessingConsentAcceptedAt;
+
+    // Defaults to true so `ddl-auto=update` can add the column to tables with existing rows.
+    @ColumnDefault("true")
+    @Column(nullable = false)
+    private boolean active = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -142,5 +148,13 @@ public class UserAccount {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 }

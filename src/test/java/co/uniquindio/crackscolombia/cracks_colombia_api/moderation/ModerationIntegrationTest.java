@@ -273,7 +273,7 @@ class ModerationIntegrationTest {
 
     private UserAccount saveModerator() {
         return userAccountRepository.saveAndFlush(new UserAccount(
-                "moderador@example.com", "unused-hash", "Laura Moderadora", UserRole.MODERADOR,
+                "moderador@example.com", "unused-hash", "Laura Moderadora", UserRole.VERIFICADOR,
                 null, null, null, false, null, clock.instant()));
     }
 

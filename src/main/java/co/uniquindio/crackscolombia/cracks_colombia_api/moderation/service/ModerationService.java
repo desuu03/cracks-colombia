@@ -107,8 +107,8 @@ public class ModerationService {
     private UserAccount requireModerator(String email) {
         UserAccount account = userAccountRepository.findByEmail(email)
                 .orElseThrow(ApiException::unauthenticated);
-        if (account.getRole() != UserRole.MODERADOR) {
-            throw ApiException.forbidden("Esta operación solo está disponible para el moderador.");
+        if (account.getRole() != UserRole.VERIFICADOR || !account.isActive()) {
+            throw ApiException.forbidden("Esta operación solo está disponible para un verificador activo.");
         }
         return account;
     }

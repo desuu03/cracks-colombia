@@ -23,6 +23,7 @@ public class AccountUserDetailsService implements UserDetailsService {
         return User.withUsername(account.getEmail())
                 .password(account.getPasswordHash())
                 .roles(account.getRole().name())
+                .disabled(!account.isActive())
                 .build();
     }
 }

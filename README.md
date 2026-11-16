@@ -81,6 +81,17 @@ El token JWT se envía en `Authorization: Bearer <token>`.
 | `VIDEO_MAX_DURATION_SECONDS` | `60` | Duración máxima |
 | `PHOTO_STORAGE_DIR` | `./data/photos` | Fotos de perfil |
 | `PHOTO_MAX_FILE_SIZE_BYTES` | `5000000` | 5 MB |
+| `ADMIN_BOOTSTRAP_EMAIL` | *(vacío)* | Correo del primer administrador |
+| `ADMIN_BOOTSTRAP_PASSWORD` | *(vacío)* | Contraseña del primer administrador (mínimo 8 caracteres) |
+| `ADMIN_BOOTSTRAP_FULL_NAME` | `Administrador` | Nombre del primer administrador |
+
+### Primer administrador
+
+Los administradores no se crean por la API. Al arrancar, si no existe ninguna cuenta `ADMIN` y están definidas `ADMIN_BOOTSTRAP_EMAIL` y `ADMIN_BOOTSTRAP_PASSWORD`, la API crea el primer administrador. Si ya existe un administrador, esas variables se ignoran.
+
+### Migración del rol verificador
+
+El rol `MODERADOR` pasó a llamarse `VERIFICADOR`. En una base PostgreSQL existente, ejecuta una vez `src/main/resources/db/manual/verifier-role-and-active-accounts.sql` antes de desplegar.
 
 Videos y fotos se guardan en disco (no en la base) y están fuera de Git.
 
@@ -120,8 +131,8 @@ Tablas actuales:
 | --- | --- | --- |
 | `DEPORTISTA` | Sí | Perfil, videos, foto, responder solicitudes |
 | `OJEADOR_ENTRENADOR` | Sí | Búsqueda, interés, crear solicitudes |
-| `MODERADOR` | No | `/moderation/**` (reservado) |
-| `ADMIN` | No | Reservado |
+| `VERIFICADOR` | No (lo crea un `ADMIN`) | `/moderation/**` |
+| `ADMIN` | No (variables de entorno) | `/admin/**` |
 
 ## Endpoints
 
@@ -129,6 +140,12 @@ Tablas actuales:
 
 - `POST /auth/register` — registro. Solo `DEPORTISTA` y `OJEADOR_ENTRENADOR`. Exige `dataProcessingConsent: true`. El deportista debe enviar `birthDate`. Si es menor de 18 (lo calcula el servidor), exige `guardianConsent`.
 - `POST /auth/login` — JWT con el rol.
+
+### Administración de verificadores (solo `ADMIN`; cualquier otro rol recibe 403)
+
+- `POST /admin/verifiers` — crea un verificador con `fullName`, `email` y `temporaryPassword`.
+- `GET /admin/verifiers` — lista verificadores, activos y desactivados.
+- `PATCH /admin/verifiers/{verifierId}/deactivate` — desactiva al verificador: ya no puede iniciar sesión ni moderar.
 
 ### Perfiles (HU-02)
 

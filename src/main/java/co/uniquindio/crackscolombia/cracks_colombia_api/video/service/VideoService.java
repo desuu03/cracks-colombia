@@ -93,7 +93,7 @@ public class VideoService {
             UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
             if (requester != null) {
                 mayView = mayView || requester.getId().equals(video.getAthlete().getId())
-                        || requester.getRole() == UserRole.MODERADOR;
+                        || requester.getRole() == UserRole.VERIFICADOR;
             }
         }
         if (!mayView) {
