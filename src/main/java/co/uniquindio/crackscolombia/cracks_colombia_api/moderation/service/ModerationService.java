@@ -2,6 +2,8 @@ package co.uniquindio.crackscolombia.cracks_colombia_api.moderation.service;
 
 import co.uniquindio.crackscolombia.cracks_colombia_api.moderation.dto.response.ModerationQueuePage;
 import co.uniquindio.crackscolombia.cracks_colombia_api.moderation.dto.response.ModerationVideoResponse;
+import co.uniquindio.crackscolombia.cracks_colombia_api.notification.entity.NotificationType;
+import co.uniquindio.crackscolombia.cracks_colombia_api.notification.service.NotificationService;
 import co.uniquindio.crackscolombia.cracks_colombia_api.search.entity.AthleteProfile;
 import co.uniquindio.crackscolombia.cracks_colombia_api.shared.exception.ApiException;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserAccount;
@@ -24,19 +26,25 @@ public class ModerationService {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final int MAX_REASON_LENGTH = 500;
+    private static final int MAX_NOTIFICATION_LENGTH = 300;
+    private static final String APPROVED_MESSAGE = "Tu video fue aprobado y ya es visible en tu perfil.";
+    private static final String REJECTED_PREFIX = "Tu video fue rechazado: ";
 
     private final VideoRepository videoRepository;
     private final UserAccountRepository userAccountRepository;
     private final ProfileDirectory profileDirectory;
+    private final NotificationService notificationService;
     private final Clock clock;
 
     public ModerationService(VideoRepository videoRepository,
                              UserAccountRepository userAccountRepository,
                              ProfileDirectory profileDirectory,
+                             NotificationService notificationService,
                              Clock clock) {
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
         this.profileDirectory = profileDirectory;
+        this.notificationService = notificationService;
         this.clock = clock;
     }
 
@@ -61,15 +69,26 @@ public class ModerationService {
         UserAccount moderator = requireModerator(authenticatedEmail);
         Video video = requirePending(requireVideo(videoId));
         video.markApproved(moderator, clock.instant());
-        return toResponse(videoRepository.saveAndFlush(video));
+        videoRepository.saveAndFlush(video);
+        notificationService.notify(video.getAthlete(), NotificationType.VIDEO_APPROVED, APPROVED_MESSAGE);
+        return toResponse(video);
     }
 
     @Transactional
     public ModerationVideoResponse reject(UUID videoId, String reason, String authenticatedEmail) {
         UserAccount moderator = requireModerator(authenticatedEmail);
         Video video = requirePending(requireVideo(videoId));
-        video.markRejected(moderator, requireReason(reason), clock.instant());
-        return toResponse(videoRepository.saveAndFlush(video));
+        String trimmedReason = requireReason(reason);
+        video.markRejected(moderator, trimmedReason, clock.instant());
+        videoRepository.saveAndFlush(video);
+        notificationService.notify(video.getAthlete(), NotificationType.VIDEO_REJECTED, rejectedMessage(trimmedReason));
+        return toResponse(video);
+    }
+
+    private String rejectedMessage(String reason) {
+        int roomForReason = MAX_NOTIFICATION_LENGTH - REJECTED_PREFIX.length();
+        String visibleReason = reason.length() <= roomForReason ? reason : reason.substring(0, roomForReason);
+        return REJECTED_PREFIX + visibleReason;
     }
 
     private Video requireVideo(UUID videoId) {

@@ -167,7 +167,7 @@ Catálogo cerrado: Fútbol, Baloncesto, Voleibol, Atletismo, con posiciones fija
 - `GET /notifications?unreadOnly=`
 - `PATCH /notifications/{notificationId}/read`
 
-Tipos: `PROFILE_VIEWED`, `REQUEST_CREATED`, `REQUEST_ACCEPTED`, `REQUEST_REJECTED`. Máximo una notificación de vista de perfil por ojeador, deportista y día.
+Tipos: `PROFILE_VIEWED`, `REQUEST_CREATED`, `REQUEST_ACCEPTED`, `REQUEST_REJECTED`, `VIDEO_APPROVED`, `VIDEO_REJECTED`. Máximo una notificación de vista de perfil por ojeador, deportista y día. Aprobar o rechazar un video avisa al deportista dueño; el mensaje no incluye el id del video.
 
 ### Moderación (HU-09)
 

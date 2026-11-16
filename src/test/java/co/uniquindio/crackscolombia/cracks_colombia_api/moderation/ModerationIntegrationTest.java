@@ -2,6 +2,7 @@ package co.uniquindio.crackscolombia.cracks_colombia_api.moderation;
 
 import co.uniquindio.crackscolombia.cracks_colombia_api.auth.dto.request.GuardianConsentRequest;
 import co.uniquindio.crackscolombia.cracks_colombia_api.auth.dto.request.RegisterRequest;
+import co.uniquindio.crackscolombia.cracks_colombia_api.notification.repository.NotificationRepository;
 import co.uniquindio.crackscolombia.cracks_colombia_api.search.repository.AthleteProfileRepository;
 import co.uniquindio.crackscolombia.cracks_colombia_api.shared.security.JwtService;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserAccount;
@@ -36,6 +37,8 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -81,11 +84,15 @@ class ModerationIntegrationTest {
     private VideoRepository videoRepository;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     @AfterEach
     void clearTestData() throws IOException {
+        notificationRepository.deleteAll();
         videoRepository.deleteAll();
         detailsRepository.deleteAll();
         athleteProfileRepository.deleteAll();
@@ -142,6 +149,15 @@ class ModerationIntegrationTest {
                 .andExpect(jsonPath("$[0].status").value("APROBADO"));
         mockMvc.perform(get("/videos/{videoId}/content", videoId))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/notifications").header("Authorization", "Bearer " + athleteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].type").value("VIDEO_APPROVED"))
+                .andExpect(jsonPath("$[0].message").value("Tu video fue aprobado y ya es visible en tu perfil."))
+                .andExpect(jsonPath("$[0].read").value(false));
+        mockMvc.perform(get("/notifications").header("Authorization", "Bearer " + moderatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
         mockMvc.perform(get("/moderation/queue").header("Authorization", "Bearer " + moderatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
@@ -157,6 +173,9 @@ class ModerationIntegrationTest {
                         .content("{\"reason\":\"Intento tardío\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("VIDEO_ALREADY_MODERATED"));
+        mockMvc.perform(get("/notifications").header("Authorization", "Bearer " + athleteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
     }
 
     @Test
@@ -201,6 +220,12 @@ class ModerationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("RECHAZADO"))
                 .andExpect(jsonPath("$[0].rejectionReason").value("Contenido ajeno a la disciplina"));
+        mockMvc.perform(get("/notifications").header("Authorization", "Bearer " + athleteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].type").value("VIDEO_REJECTED"))
+                .andExpect(jsonPath("$[0].message").value("Tu video fue rechazado: Contenido ajeno a la disciplina"))
+                .andExpect(jsonPath("$[0].read").value(false));
         assertAthleteRemainsSearchable(scoutToken, athleteId);
 
         mockMvc.perform(post("/moderation/{videoId}/reject", videoId)
@@ -209,6 +234,37 @@ class ModerationIntegrationTest {
                         .content("{\"reason\":\"Otro motivo\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("VIDEO_ALREADY_MODERATED"));
+        mockMvc.perform(get("/notifications").header("Authorization", "Bearer " + athleteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].type").value("VIDEO_REJECTED"));
+    }
+
+    @Test
+    void rejectionNoticeKeepsThePrefixAndCutsTheReasonAtThreeHundredCharacters() throws Exception {
+        String athleteToken = registerAthlete("largo@example.com", "Pedro Largo", 19);
+        UUID athleteId = userAccountRepository.findByEmail("largo@example.com").orElseThrow().getId();
+        String videoId = uploadVideo(athleteToken, athleteId);
+        String moderatorToken = jwtService.createToken(saveModerator());
+        String reason = "M".repeat(400);
+
+        mockMvc.perform(post("/moderation/{videoId}/reject", videoId)
+                        .header("Authorization", "Bearer " + moderatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"" + reason + "\"}"))
+                .andExpect(status().isOk());
+
+        String prefix = "Tu video fue rechazado: ";
+        MvcResult notices = mockMvc.perform(get("/notifications")
+                        .header("Authorization", "Bearer " + athleteToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].type").value("VIDEO_REJECTED"))
+                .andReturn();
+        String message = readJson(notices).get(0).get("message").asText();
+        assertEquals(300, message.length());
+        assertTrue(message.startsWith(prefix));
+        assertEquals(reason.substring(0, 300 - prefix.length()), message.substring(prefix.length()));
     }
 
     @Test
