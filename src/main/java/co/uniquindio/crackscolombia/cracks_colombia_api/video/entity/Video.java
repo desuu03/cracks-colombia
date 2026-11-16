@@ -48,6 +48,13 @@ public class Video {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "moderated_by_id")
+    private UserAccount moderatedBy;
+
+    @Column(name = "moderated_at")
+    private Instant moderatedAt;
+
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private Instant uploadedAt;
 
@@ -92,7 +99,39 @@ public class Video {
         return rejectionReason;
     }
 
+    public UserAccount getModeratedBy() {
+        return moderatedBy;
+    }
+
+    public Instant getModeratedAt() {
+        return moderatedAt;
+    }
+
     public Instant getUploadedAt() {
         return uploadedAt;
+    }
+
+    /** Publishes a pending video. The caller must already have checked that it is still pending. */
+    public void markApproved(UserAccount moderator, Instant moderatedAt) {
+        ensureStillPending();
+        this.status = VideoStatus.APROBADO;
+        this.rejectionReason = null;
+        this.moderatedBy = moderator;
+        this.moderatedAt = moderatedAt;
+    }
+
+    /** Rejects a pending video with a reason the athlete can read. */
+    public void markRejected(UserAccount moderator, String reason, Instant moderatedAt) {
+        ensureStillPending();
+        this.status = VideoStatus.RECHAZADO;
+        this.rejectionReason = reason;
+        this.moderatedBy = moderator;
+        this.moderatedAt = moderatedAt;
+    }
+
+    private void ensureStillPending() {
+        if (status != VideoStatus.PENDIENTE) {
+            throw new IllegalStateException("Solo un video pendiente puede moderarse.");
+        }
     }
 }

@@ -171,7 +171,13 @@ Tipos: `PROFILE_VIEWED`, `REQUEST_CREATED`, `REQUEST_ACCEPTED`, `REQUEST_REJECTE
 
 ### Moderación (HU-09)
 
-Rutas `/moderation/**` reservadas al rol `MODERADOR`. Aún no hay implementación completa de cola/aprobar/rechazar.
+Rol `MODERADOR` (el verificador de la historia). El registro público no crea este rol.
+
+- `GET /moderation/queue?page=&size=` — videos `PENDIENTE`, del más antiguo al más reciente. Incluye nombre, edad, si es menor y deporte.
+- `POST /moderation/{videoId}/approve` — pasa a `APROBADO`. Queda visible en el perfil público y se puede reproducir. Registra quién moderó y cuándo.
+- `POST /moderation/{videoId}/reject` — cuerpo `{ "reason" }` obligatorio (máximo 500 caracteres). Pasa a `RECHAZADO` y deja de ser visible para ojeadores. El deportista ve el motivo en `GET /users/me/videos`.
+
+Un video que ya está `APROBADO` o `RECHAZADO` responde `409` con código `VIDEO_ALREADY_MODERATED`. Un perfil con datos completos sigue apareciendo en la búsqueda aunque no tenga videos aprobados.
 
 ## Pruebas
 
@@ -187,6 +193,7 @@ Usan H2 en memoria. No necesitan PostgreSQL ni `JWT_SECRET_BASE64`.
 - `PhotoIntegrationTest`
 - `AthleteSearchIntegrationTest`
 - `MatchRequestIntegrationTest`
+- `ModerationIntegrationTest`
 
 ## Estructura
 

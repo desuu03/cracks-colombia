@@ -2,6 +2,8 @@ package co.uniquindio.crackscolombia.cracks_colombia_api.video.repository;
 
 import co.uniquindio.crackscolombia.cracks_colombia_api.video.entity.Video;
 import co.uniquindio.crackscolombia.cracks_colombia_api.video.entity.VideoStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -12,4 +14,6 @@ public interface VideoRepository extends JpaRepository<Video, UUID> {
     List<Video> findAllByAthlete_IdOrderByUploadedAtDesc(UUID athleteId);
 
     List<Video> findAllByAthlete_IdAndStatusOrderByUploadedAtDesc(UUID athleteId, VideoStatus status);
+
+    Page<Video> findAllByStatusOrderByUploadedAtAsc(VideoStatus status, Pageable pageable);
 }

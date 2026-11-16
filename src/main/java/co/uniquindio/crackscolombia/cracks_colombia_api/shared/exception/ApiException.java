@@ -65,4 +65,9 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
                 "Correo o contraseña incorrectos.");
     }
+
+    public static ApiException videoAlreadyModerated() {
+        return new ApiException(HttpStatus.CONFLICT, "VIDEO_ALREADY_MODERATED",
+                "Este video ya fue moderado y no puede cambiar de estado sin una acción explícita.");
+    }
 }
