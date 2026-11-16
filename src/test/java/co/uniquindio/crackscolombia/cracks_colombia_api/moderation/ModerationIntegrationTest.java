@@ -228,6 +228,24 @@ class ModerationIntegrationTest {
     }
 
     @Test
+    void verifierCanPlayPendingVideosThatStayHiddenFromEveryoneElse() throws Exception {
+        String athleteToken = registerAthlete("ana@example.com", "Ana López", 19);
+        UUID athleteId = userAccountRepository.findByEmail("ana@example.com").orElseThrow().getId();
+        String videoId = uploadVideo(athleteToken, athleteId);
+        String moderatorToken = jwtService.createToken(saveModerator());
+        String scoutToken = registerScout();
+
+        mockMvc.perform(get("/videos/{videoId}/content", videoId)
+                        .header("Authorization", "Bearer " + moderatorToken))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/videos/{videoId}/content", videoId))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/videos/{videoId}/content", videoId)
+                        .header("Authorization", "Bearer " + scoutToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void otherRolesCannotModerateAndMissingVideosAreNotFound() throws Exception {
         String athleteToken = registerAthlete("dueno@example.com", "Carlos Díaz", 18);
         String scoutToken = registerScout();
@@ -237,6 +255,14 @@ class ModerationIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/moderation/queue").header("Authorization", "Bearer " + athleteToken))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/moderation/queue").header("Authorization", "Bearer " + scoutToken))
+                .andExpect(status().isForbidden());
+        String adminToken = jwtService.createToken(userAccountRepository.saveAndFlush(new UserAccount(
+                "admin@example.com", "unused-hash", "Ana Administradora", UserRole.ADMIN,
+                null, null, null, false, null, clock.instant())));
+        mockMvc.perform(get("/moderation/queue").header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
         mockMvc.perform(post("/moderation/{videoId}/approve", missingId)
                         .header("Authorization", "Bearer " + scoutToken))
                 .andExpect(status().isForbidden());
