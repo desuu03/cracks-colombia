@@ -130,6 +130,16 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void publicRegistrationRejectsVerifierAndAdminRoles() throws Exception {
+        for (UserRole role : new UserRole[]{UserRole.VERIFICADOR, UserRole.ADMIN}) {
+            postRegistration(registration("privileged@example.com", role, null, null, true))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+        assertFalse(userAccountRepository.existsByEmail("privileged@example.com"));
+    }
+
+    @Test
     void loginReturnsTokenForValidCredentialsAndRejectsInvalidCredentials() throws Exception {
         postRegistration(registration("login@example.com", UserRole.OJEADOR_ENTRENADOR,
                 null, null, true)).andExpect(status().isCreated());

@@ -78,7 +78,7 @@ public class PhotoService {
             UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
             if (requester != null) {
                 mayView = mayView || requester.getId().equals(athleteId)
-                        || requester.getRole() == UserRole.MODERADOR;
+                        || requester.getRole() == UserRole.VERIFICADOR;
             }
         }
         if (!mayView) {
