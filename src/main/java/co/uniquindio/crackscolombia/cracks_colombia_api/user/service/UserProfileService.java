@@ -75,6 +75,12 @@ public class UserProfileService {
         String sport = trimToNull(request.sport());
         String position = trimToNull(request.position());
         String region = trimToNull(request.region());
+        requireValidSportCatalog(sport, position, region);
+        saveAthleteDetails(athlete, request);
+        persistAthleteSportProfile(athlete, sport, position, region);
+    }
+
+    private void requireValidSportCatalog(String sport, String position, String region) {
         if (!SportsCatalog.isSport(sport)) {
             throw ApiException.invalid("Elige un deporte de la lista.");
         }
@@ -84,12 +90,16 @@ public class UserProfileService {
         if (!SportsCatalog.isRegion(region)) {
             throw ApiException.invalid("Elige un departamento de la lista.");
         }
+    }
 
+    private void saveAthleteDetails(UserAccount athlete, UserProfileUpdateRequest request) {
         AthleteProfileDetails details = detailsRepository.findByAthlete_Id(athlete.getId())
                 .orElseGet(() -> new AthleteProfileDetails(athlete));
         details.update(request.heightCm(), request.weightKg(), trimToNull(request.trajectory()), clock.instant());
         detailsRepository.save(details);
+    }
 
+    private void persistAthleteSportProfile(UserAccount athlete, String sport, String position, String region) {
         AthleteProfileStatus status = autoApproveProfiles ? AthleteProfileStatus.APROBADO : AthleteProfileStatus.PENDIENTE;
         if (athleteProfileRepository.findByAthlete_Id(athlete.getId()).isPresent()) {
             athleteSportDataWriter.updateSportData(athlete.getId(), sport, position, region, status);

@@ -66,18 +66,8 @@ public class MatchRequestService {
         UserAccount scout = requireRole(authenticatedEmail, UserRole.OJEADOR_ENTRENADOR);
         UserAccount athlete = requireAthlete(request.athleteId());
         Instant now = clock.instant();
-        if (request.proposedDate() != null && !request.proposedDate().isAfter(now)) {
-            throw ApiException.invalid("La fecha propuesta debe ser posterior al momento actual.");
-        }
-        if (!scoutInterestRepository.existsByScout_IdAndAthlete_Id(scout.getId(), athlete.getId())) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "INTEREST_REQUIRED",
-                    "Marca al deportista como prospecto de interés antes de enviar la solicitud.");
-        }
-        if (matchRequestRepository.existsByScout_IdAndAthlete_IdAndStatus(scout.getId(), athlete.getId(),
-                MatchRequestStatus.PENDIENTE)) {
-            throw new ApiException(HttpStatus.CONFLICT, "REQUEST_ALREADY_PENDING",
-                    "Ya tienes una solicitud pendiente con este deportista.");
-        }
+        requireFutureProposedDate(request.proposedDate(), now);
+        requireInterestWithoutPendingRequest(scout.getId(), athlete.getId());
         MatchRequest saved = matchRequestRepository.save(
                 new MatchRequest(athlete, scout, request.message().trim(), request.proposedDate(), now));
         notificationService.notify(athlete, NotificationType.REQUEST_CREATED,
@@ -112,17 +102,39 @@ public class MatchRequestService {
             throw new ApiException(HttpStatus.CONFLICT, "REQUEST_ALREADY_ANSWERED",
                     "Esta solicitud ya fue respondida.");
         }
-        Instant now = clock.instant();
-        if (body.decision() == MatchRequestRespondRequest.Decision.ACCEPTED) {
+        applyDecision(request, athlete, body.decision(), clock.instant());
+        return toResponse(request, athlete);
+    }
+
+    private void requireFutureProposedDate(Instant proposedDate, Instant now) {
+        if (proposedDate != null && !proposedDate.isAfter(now)) {
+            throw ApiException.invalid("La fecha propuesta debe ser posterior al momento actual.");
+        }
+    }
+
+    private void requireInterestWithoutPendingRequest(UUID scoutId, UUID athleteId) {
+        if (!scoutInterestRepository.existsByScout_IdAndAthlete_Id(scoutId, athleteId)) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "INTEREST_REQUIRED",
+                    "Marca al deportista como prospecto de interés antes de enviar la solicitud.");
+        }
+        if (matchRequestRepository.existsByScout_IdAndAthlete_IdAndStatus(scoutId, athleteId,
+                MatchRequestStatus.PENDIENTE)) {
+            throw new ApiException(HttpStatus.CONFLICT, "REQUEST_ALREADY_PENDING",
+                    "Ya tienes una solicitud pendiente con este deportista.");
+        }
+    }
+
+    private void applyDecision(MatchRequest request, UserAccount athlete,
+                               MatchRequestRespondRequest.Decision decision, Instant now) {
+        if (decision == MatchRequestRespondRequest.Decision.ACCEPTED) {
             request.accept(now);
             notificationService.notify(request.getScout(), NotificationType.REQUEST_ACCEPTED,
                     athlete.getFullName() + " aceptó tu solicitud. Ya puedes ver sus datos de contacto.");
-        } else {
-            request.reject(now);
-            notificationService.notify(request.getScout(), NotificationType.REQUEST_REJECTED,
-                    athlete.getFullName() + " rechazó tu solicitud.");
+            return;
         }
-        return toResponse(request, athlete);
+        request.reject(now);
+        notificationService.notify(request.getScout(), NotificationType.REQUEST_REJECTED,
+                athlete.getFullName() + " rechazó tu solicitud.");
     }
 
     private MatchRequestResponse toResponse(MatchRequest request, UserAccount viewer) {

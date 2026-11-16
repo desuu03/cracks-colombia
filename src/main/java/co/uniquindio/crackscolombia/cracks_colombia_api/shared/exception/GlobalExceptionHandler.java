@@ -13,10 +13,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Clock;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final Clock clock;
     private final long maxVideoFileSizeBytes;
@@ -69,7 +74,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiErrorResponse> handleUnexpectedException() {
+    ResponseEntity<ApiErrorResponse> handleUnexpectedException(Exception exception) {
+        LOGGER.error("Error no controlado en la API", exception);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
                 "Ocurrió un error inesperado. Intenta de nuevo más tarde.");
     }

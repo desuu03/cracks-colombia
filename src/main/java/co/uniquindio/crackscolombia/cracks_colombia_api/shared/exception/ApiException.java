@@ -22,7 +22,7 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException invalid(String message) {
-        return new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "INVALID_REQUEST", message);
+        return new SolicitudInvalidaException(message);
     }
 
     public static ApiException invalidVideo(String message) {
@@ -48,7 +48,7 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException notFound(String message) {
-        return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", message);
+        return new RecursoNoEncontradoException(message);
     }
 
     public static ApiException unauthenticated() {
@@ -57,13 +57,11 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException emailAlreadyRegistered() {
-        return new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_REGISTERED",
-                "Este correo ya está registrado.");
+        return new CorreoYaRegistradoException();
     }
 
     public static ApiException invalidCredentials() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
-                "Correo o contraseña incorrectos.");
+        return new CredencialesInvalidasException();
     }
 
     public static ApiException videoAlreadyModerated() {

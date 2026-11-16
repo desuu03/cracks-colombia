@@ -8,6 +8,7 @@ import co.uniquindio.crackscolombia.cracks_colombia_api.shared.exception.ApiExce
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserAccount;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserRole;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.repository.UserAccountRepository;
+import co.uniquindio.crackscolombia.cracks_colombia_api.user.service.AthleteConsentPolicy;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Clock;
-import java.time.Period;
 import java.util.UUID;
 
 @Service
@@ -26,16 +25,16 @@ public class PhotoService {
     private final AthleteProfileRepository athleteProfileRepository;
     private final UserAccountRepository userAccountRepository;
     private final PhotoStorageService photoStorageService;
-    private final Clock clock;
+    private final AthleteConsentPolicy athleteConsentPolicy;
 
     public PhotoService(AthleteProfileRepository athleteProfileRepository,
                         UserAccountRepository userAccountRepository,
                         PhotoStorageService photoStorageService,
-                        Clock clock) {
+                        AthleteConsentPolicy athleteConsentPolicy) {
         this.athleteProfileRepository = athleteProfileRepository;
         this.userAccountRepository = userAccountRepository;
         this.photoStorageService = photoStorageService;
-        this.clock = clock;
+        this.athleteConsentPolicy = athleteConsentPolicy;
     }
 
     @Transactional
@@ -44,7 +43,7 @@ public class PhotoService {
         if (!owner.getId().equals(athleteId)) {
             throw ApiException.forbidden("Solo puedes cambiar la foto de tu propio perfil.");
         }
-        requirePhotoConsent(owner);
+        athleteConsentPolicy.requireMediaUploadConsent(owner, "fotos");
 
         PhotoStorageService.StoredPhoto stored = photoStorageService.store(upload);
         cleanupStoredFileAfterRollback(stored.storageKey());
@@ -73,20 +72,24 @@ public class PhotoService {
             throw ApiException.notFound("No se encontró la foto del deportista.");
         }
 
-        boolean mayView = profile.getStatus() == AthleteProfileStatus.APROBADO;
-        if (authentication != null && authentication.isAuthenticated()) {
-            UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
-            if (requester != null) {
-                mayView = mayView || requester.getId().equals(athleteId)
-                        || requester.getRole() == UserRole.MODERADOR;
-            }
-        }
-        if (!mayView) {
+        if (!mayViewPhoto(profile, athleteId, authentication)) {
             throw ApiException.notFound("No se encontró la foto del deportista.");
         }
 
         return new PhotoContent(photoStorageService.load(profile.getPhotoStorageKey()),
                 profile.getPhotoContentType());
+    }
+
+    private boolean mayViewPhoto(AthleteProfile profile, UUID athleteId, Authentication authentication) {
+        if (profile.getStatus() == AthleteProfileStatus.APROBADO) {
+            return true;
+        }
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
+        return requester != null && (requester.getId().equals(athleteId)
+                || requester.getRole() == UserRole.MODERADOR);
     }
 
     private UserAccount requireAthlete(String email) {
@@ -96,21 +99,6 @@ public class PhotoService {
             throw ApiException.forbidden("Esta operación solo está disponible para deportistas.");
         }
         return account;
-    }
-
-    private void requirePhotoConsent(UserAccount account) {
-        if (account.getBirthDate() == null) {
-            throw ApiException.invalid("El perfil del deportista debe tener fecha de nacimiento.");
-        }
-        if (!account.isDataProcessingConsentAccepted()) {
-            throw ApiException.forbidden("Debes aceptar la política de tratamiento de datos antes de cargar fotos.");
-        }
-        boolean minor = Period.between(account.getBirthDate(), java.time.LocalDate.now(clock)).getYears() < 18;
-        if (minor && (!account.isGuardianConsentAccepted()
-                || account.getGuardianConsentAcceptedAt() == null)) {
-            throw ApiException.forbidden(
-                    "El deportista menor debe tener autorización de acudiente y tratamiento de datos aceptado.");
-        }
     }
 
     private String photoUrl(UUID athleteId) {

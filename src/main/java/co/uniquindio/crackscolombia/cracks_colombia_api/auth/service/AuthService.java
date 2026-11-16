@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Locale;
@@ -52,55 +53,10 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (request.role() != UserRole.DEPORTISTA
-                && request.role() != UserRole.OJEADOR_ENTRENADOR) {
-            throw ApiException.invalid("Solo puedes registrarte como deportista u ojeador/entrenador.");
-        }
-
-        String email = normalizeEmail(request.email());
-        if (userAccountRepository.existsByEmail(email)) {
-            throw ApiException.emailAlreadyRegistered();
-        }
-
-        boolean minor = false;
-        GuardianConsentRequest guardianConsent = null;
-        if (request.role() == UserRole.DEPORTISTA) {
-            if (request.birthDate() == null) {
-                throw ApiException.invalid("La fecha de nacimiento es obligatoria para un deportista.");
-            }
-            LocalDate today = LocalDate.now(clock);
-            if (request.birthDate().isAfter(today)) {
-                throw ApiException.invalid("La fecha de nacimiento no puede estar en el futuro.");
-            }
-            minor = Period.between(request.birthDate(), today).getYears() < 18;
-            if (minor) {
-                guardianConsent = validateGuardianConsent(request.guardianConsent());
-            }
-        }
-
-        var now = clock.instant();
-        String guardianName = guardianConsent == null ? null : guardianConsent.guardianFullName().trim();
-        String guardianEmail = guardianConsent == null ? null : normalizeEmail(guardianConsent.guardianEmail());
-        var user = new UserAccount(
-                email,
-                passwordEncoder.encode(request.password()),
-                request.fullName().trim(),
-                request.role(),
-                request.birthDate(),
-                guardianName,
-                guardianEmail,
-                guardianConsent != null,
-                guardianConsent == null ? null : now,
-                now
-        );
-
-        try {
-            userAccountRepository.saveAndFlush(user);
-        } catch (DataIntegrityViolationException exception) {
-            throw ApiException.emailAlreadyRegistered();
-        }
-
-        return createAuthResponse(user);
+        requirePublicRegistrationRole(request.role());
+        String email = requireUnusedEmail(request.email());
+        GuardianConsentRequest guardianConsent = resolveGuardianConsent(request);
+        return createAuthResponse(persistAccount(request, email, guardianConsent));
     }
 
     @Transactional(readOnly = true)
@@ -115,6 +71,57 @@ public class AuthService {
         UserAccount user = userAccountRepository.findByEmail(email)
                 .orElseThrow(ApiException::invalidCredentials);
         return createAuthResponse(user);
+    }
+
+    private void requirePublicRegistrationRole(UserRole role) {
+        if (role != UserRole.DEPORTISTA && role != UserRole.OJEADOR_ENTRENADOR) {
+            throw ApiException.invalid("Solo puedes registrarte como deportista u ojeador/entrenador.");
+        }
+    }
+
+    private String requireUnusedEmail(String rawEmail) {
+        String email = normalizeEmail(rawEmail);
+        if (userAccountRepository.existsByEmail(email)) {
+            throw ApiException.emailAlreadyRegistered();
+        }
+        return email;
+    }
+
+    private GuardianConsentRequest resolveGuardianConsent(RegisterRequest request) {
+        if (request.role() != UserRole.DEPORTISTA) {
+            return null;
+        }
+        if (request.birthDate() == null) {
+            throw ApiException.invalid("La fecha de nacimiento es obligatoria para un deportista.");
+        }
+        LocalDate today = LocalDate.now(clock);
+        if (request.birthDate().isAfter(today)) {
+            throw ApiException.invalid("La fecha de nacimiento no puede estar en el futuro.");
+        }
+        boolean minor = Period.between(request.birthDate(), today).getYears() < 18;
+        return minor ? validateGuardianConsent(request.guardianConsent()) : null;
+    }
+
+    private UserAccount persistAccount(RegisterRequest request, String email,
+                                       GuardianConsentRequest guardianConsent) {
+        Instant now = clock.instant();
+        UserAccount user = new UserAccount(
+                email,
+                passwordEncoder.encode(request.password()),
+                request.fullName().trim(),
+                request.role(),
+                request.birthDate(),
+                guardianConsent == null ? null : guardianConsent.guardianFullName().trim(),
+                guardianConsent == null ? null : normalizeEmail(guardianConsent.guardianEmail()),
+                guardianConsent != null,
+                guardianConsent == null ? null : now,
+                now
+        );
+        try {
+            return userAccountRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException exception) {
+            throw ApiException.emailAlreadyRegistered();
+        }
     }
 
     private GuardianConsentRequest validateGuardianConsent(GuardianConsentRequest consent) {

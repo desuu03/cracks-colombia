@@ -4,6 +4,7 @@ import co.uniquindio.crackscolombia.cracks_colombia_api.shared.exception.ApiExce
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserAccount;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.entity.UserRole;
 import co.uniquindio.crackscolombia.cracks_colombia_api.user.repository.UserAccountRepository;
+import co.uniquindio.crackscolombia.cracks_colombia_api.user.service.AthleteConsentPolicy;
 import co.uniquindio.crackscolombia.cracks_colombia_api.video.dto.response.VideoResponse;
 import co.uniquindio.crackscolombia.cracks_colombia_api.video.entity.Video;
 import co.uniquindio.crackscolombia.cracks_colombia_api.video.entity.VideoStatus;
@@ -17,7 +18,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
-import java.time.Period;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,15 +27,18 @@ public class VideoService {
     private final VideoRepository videoRepository;
     private final UserAccountRepository userAccountRepository;
     private final VideoStorageService videoStorageService;
+    private final AthleteConsentPolicy athleteConsentPolicy;
     private final Clock clock;
 
     public VideoService(VideoRepository videoRepository,
                         UserAccountRepository userAccountRepository,
                         VideoStorageService videoStorageService,
+                        AthleteConsentPolicy athleteConsentPolicy,
                         Clock clock) {
         this.videoRepository = videoRepository;
         this.userAccountRepository = userAccountRepository;
         this.videoStorageService = videoStorageService;
+        this.athleteConsentPolicy = athleteConsentPolicy;
         this.clock = clock;
     }
 
@@ -45,7 +48,7 @@ public class VideoService {
         if (!owner.getId().equals(athleteId)) {
             throw ApiException.forbidden("Solo puedes agregar videos a tu propio perfil.");
         }
-        requireVideoConsent(owner);
+        athleteConsentPolicy.requireMediaUploadConsent(owner, "videos");
 
         VideoStorageService.StoredVideo stored = videoStorageService.store(upload);
         cleanupStoredFileAfterRollback(stored.storageKey());
@@ -88,19 +91,22 @@ public class VideoService {
     public Resource loadContent(UUID videoId, Authentication authentication) {
         Video video = videoRepository.findById(videoId)
                 .orElseThrow(() -> ApiException.notFound("No se encontro el video."));
-        boolean mayView = video.getStatus() == VideoStatus.APROBADO;
-        if (authentication != null && authentication.isAuthenticated()) {
-            UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
-            if (requester != null) {
-                mayView = mayView || requester.getId().equals(video.getAthlete().getId())
-                        || requester.getRole() == UserRole.MODERADOR;
-            }
-        }
-        if (!mayView) {
-            // Hide pending and rejected content from the public and scouting roles.
+        if (!mayViewVideo(video, authentication)) {
             throw ApiException.notFound("No se encontro el video.");
         }
         return videoStorageService.load(video.getStorageKey());
+    }
+
+    private boolean mayViewVideo(Video video, Authentication authentication) {
+        if (video.getStatus() == VideoStatus.APROBADO) {
+            return true;
+        }
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        UserAccount requester = userAccountRepository.findByEmail(authentication.getName()).orElse(null);
+        return requester != null && (requester.getId().equals(video.getAthlete().getId())
+                || requester.getRole() == UserRole.MODERADOR);
     }
 
     private UserAccount requireAthlete(String email) {
@@ -110,21 +116,6 @@ public class VideoService {
             throw ApiException.forbidden("Esta operacion solo esta disponible para deportistas.");
         }
         return account;
-    }
-
-    private void requireVideoConsent(UserAccount account) {
-        if (account.getBirthDate() == null) {
-            throw ApiException.invalid("El perfil del deportista debe tener fecha de nacimiento.");
-        }
-        if (!account.isDataProcessingConsentAccepted()) {
-            throw ApiException.forbidden("Debes aceptar la politica de tratamiento de datos antes de cargar videos.");
-        }
-        boolean minor = Period.between(account.getBirthDate(), java.time.LocalDate.now(clock)).getYears() < 18;
-        if (minor && (!account.isGuardianConsentAccepted()
-                || account.getGuardianConsentAcceptedAt() == null)) {
-            throw ApiException.forbidden(
-                    "El deportista menor debe tener autorizacion de acudiente y tratamiento de datos aceptado.");
-        }
     }
 
     private VideoResponse toResponse(Video video) {
