@@ -91,7 +91,7 @@ Los administradores no se crean por la API. Al arrancar, si no existe ninguna cu
 
 ### Migración del rol verificador
 
-El rol `MODERADOR` pasó a llamarse `VERIFICADOR`. En una base PostgreSQL existente, ejecuta una vez `src/main/resources/db/manual/verifier-role-and-active-accounts.sql` antes de desplegar.
+El rol `MODERADOR` pasó a llamarse `VERIFICADOR`. En PostgreSQL, el back lo resuelve solo al arrancar (`RoleConstraintMigration`): actualiza la restricción `user_accounts_role_check` con los roles actuales y pasa las cuentas `MODERADOR` a `VERIFICADOR`. Si la restricción ya está al día, no hace nada. El script `src/main/resources/db/manual/verifier-role-and-active-accounts.sql` queda para bases que se manejan a mano.
 
 Videos y fotos se guardan en disco (no en la base) y están fuera de Git.
 
